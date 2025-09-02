@@ -21,10 +21,15 @@ class NuttXBuilder:
         # TODO: Implement configuration loading
         pass
     
-    def build(self):
+    def build(self, parallel: int = None):
         """Build the NuttX project."""
-        # TODO: Implement build process
-        pass
+        if parallel:
+            args = [f"-j{parallel}"]
+        else:
+            args = []
+
+        self._run_command(["make"] + args)
+        return 0
     
     def distclean(self):
         """Distclean the NuttX project."""
@@ -83,6 +88,12 @@ class NuttXBuilder:
         except Exception as e:
             print(f"Setup failed with error: {e}")
             return 1
+    
+    def kconfig_read(self, config: str):
+        """Read Kconfig file"""
+        ans = self._run_command(["kconfig-tweak", "-s", config])
+        print(f"{config}={ans.stdout.strip()}")
+        return 0
     
     def _run_command(self, cmd: List[str], cwd: Optional[str] = None) -> int:
         """Run a shell command and return exit code."""

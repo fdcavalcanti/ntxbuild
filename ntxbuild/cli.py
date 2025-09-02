@@ -51,10 +51,19 @@ def start(apps, board, defconfig):
     return 0
 
 @main.command()
-def build(target):
+@click.option('--read', '-r', help='Path to apps folder (relative or absolute)', required=False)
+def kconfig(read):
+    """Read Kconfig file"""
+    builder = NuttXBuilder()
+    if read:
+        builder.kconfig_read(read)
+
+@main.command()
+@click.option('--parallel', '-j', required=False, type=int, help='Number of parallel jobs')
+def build(parallel):
     """Build NuttX project"""
     builder = NuttXBuilder()
-    builder.build(target)
+    builder.build(parallel)
 
 @main.command()
 def distclean():
