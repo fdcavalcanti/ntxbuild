@@ -39,6 +39,7 @@ dev = [
     "black>=22.0.0",
     "flake8>=5.0.0",
     "mypy>=1.0.0",
+    "gitpython>=3.1.45",
 ]
 
 [project.scripts]
@@ -59,3 +60,4 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+norecursedirs = ["nuttxspace"]

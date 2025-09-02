@@ -58,30 +58,27 @@ def start(apps, board, defconfig):
 @click.argument('value', nargs=1, required=False)
 def kconfig(read, set_value, set_str, apply, value):
     """Read Kconfig file"""
-    builder = NuttXBuilder()
+    config_manager = ConfigManager()
     if read:
-        ret = builder.kconfig_read(read)
+        config_manager.kconfig_read(read)
     elif set_value:
         if not value:
             click.echo("❌ Set value is required")
-            ret = 1
-        ret = builder.kconfig_set_value(set_value, value)
+        config_manager.kconfig_set_value(set_value, value)
     elif set_str:
         if not value:
             click.echo("❌ Set string is required")
-            ret = 1
-        ret = builder.kconfig_set_str(set_str, value)
+        config_manager.kconfig_set_str(set_str, value)
     elif apply:
-        ret = builder.kconfig_apply_changes()
+        config_manager.kconfig_apply_changes()
     else:
         click.echo("❌ No action specified")
-        ret = 1
 
-    if ret != 0:
-        click.echo("❌ Kconfig operation failed")
-        return ret
+    # if ret != 0:
+    #     click.echo("❌ Kconfig operation failed")
+    #     return ret
     
-    return ret
+    return 0
 
 @main.command()
 @click.option('--parallel', '-j', required=False, type=int, help='Number of parallel jobs')
