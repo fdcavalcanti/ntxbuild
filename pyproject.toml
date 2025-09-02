@@ -40,6 +40,7 @@ dev = [
     "flake8>=5.0.0",
     "mypy>=1.0.0",
     "gitpython>=3.1.45",
+    "pre-commit>=3.6.0",
 ]
 
 [project.scripts]
