@@ -7,6 +7,46 @@ import subprocess
 from pathlib import Path
 from typing import List, Dict, Optional
 
+from enum import Enum
+
+class BuilderAction(str, Enum):
+    BUILD = "build"
+    CLEAN = "clean"
+    DISTCLEAN = "distclean"
+    CONFIGURE = "configure"
+    INFO = "info"
+    KCONFIG_TWEAK = "kconfig-tweak"
+    MAKE = "make"
+
+class MakeAction(str, Enum):
+    ALL = "all"
+    APPS_CLEAN = "apps_clean"
+    BOOTLOADER = "bootloader"
+    CLEAN = "clean"
+    CLEAN_BOOTLOADER = "clean_bootloader"
+    CRYPTO = "crypto/"
+    DISTCLEAN = "distclean"
+    FLASH = "flash"
+    HOST_INFO = "host_info"
+    MENUCONFIG = "menuconfig"
+    OLDCONFIG = "oldconfig"
+    OLDDEFCONFIG = "olddefconfig"
+    SCHED_CLEAN = "sched_clean"
+
+class KconfigTweakAction(str, Enum):
+    ENABLE = "enable"
+    DISABLE = "disable"
+    MODULE = "module"
+    SET_STR = "set-str"
+    SET_VAL = "set-val"
+    UNDEFINE = "undefine"
+    STATE = "state"
+    ENABLE_AFTER = "enable-after"
+    DISABLE_AFTER = "disable-after"
+    MODULE_AFTER = "module-after"
+    FILE = "file"
+    KEEP_CASE = "keep-case"
+
 class NuttXBuilder:
     """Main builder class for NuttX projects."""
     
@@ -28,16 +68,16 @@ class NuttXBuilder:
         else:
             args = []
 
-        self._run_command(["make"] + args)
+        self._run_command([BuilderAction.MAKE] + args)
         return 0
     
     def distclean(self):
         """Distclean the NuttX project."""
-        self._run_command(["make", "distclean"])
+        self._run_command([BuilderAction.MAKE, MakeAction.DISTCLEAN])
     
     def clean(self):
         """Clean build artifacts."""
-        self._run_command(["make", "clean"])
+        self._run_command([BuilderAction.MAKE, MakeAction.CLEAN])
     
     def validate_nuttx_environment(self, nuttx_dir: Path, apps_dir: Path) -> tuple[bool, str]:
         """Validate NuttX environment and return (is_valid, error_message)."""
@@ -91,9 +131,30 @@ class NuttXBuilder:
     
     def kconfig_read(self, config: str):
         """Read Kconfig file"""
-        ans = self._run_command(["kconfig-tweak", "-s", config])
+        ans = self._run_command([BuilderAction.KCONFIG_TWEAK, KconfigTweakAction.STATE, config])
         print(f"{config}={ans.stdout.strip()}")
-        return 0
+        return ans.returncode
+    
+    def kconfig_apply_changes(self):
+        """Show all Kconfig options"""
+        ans = self._run_command([BuilderAction.MAKE, MakeAction.OLDDEFCONFIG])
+        return ans.returncode
+
+    def kconfig_set_value(self, config: str, value: str):
+        """Set Kconfig value"""
+        try:
+            value = int(value)
+        except ValueError:
+            raise ValueError("Value must be numerical")
+
+        ans = self._run_command([BuilderAction.KCONFIG_TWEAK, KconfigTweakAction.SET_VAL, config, str(value)])
+
+        return ans.returncode
+    
+    def kconfig_set_str(self, config: str, value: str):
+        """Set Kconfig string"""
+        ans = self._run_command([BuilderAction.KCONFIG_TWEAK, KconfigTweakAction.SET_STR, config, value])
+        return ans.returncode
     
     def _run_command(self, cmd: List[str], cwd: Optional[str] = None) -> int:
         """Run a shell command and return exit code."""
