@@ -4,9 +4,9 @@ Build system module for NuttX.
 
 import logging
 import os
-import subprocess
 from enum import Enum
-from typing import List, Optional
+
+from . import utils
 
 # Get logger for this module
 logger = logging.getLogger(__name__)
@@ -66,23 +66,27 @@ class NuttXBuilder:
         else:
             args = []
 
-        return self._run_command([BuilderAction.MAKE] + args)
+        return utils.run_make_command([BuilderAction.MAKE] + args, cwd=self.nuttx_path)
 
     def distclean(self):
         """Distclean the NuttX project."""
         logger.info("Running distclean")
-        self._run_command([BuilderAction.MAKE, MakeAction.DISTCLEAN])
+        utils.run_make_command(
+            [BuilderAction.MAKE, MakeAction.DISTCLEAN], cwd=self.nuttx_path
+        )
 
     def clean(self):
         """Clean build artifacts."""
         logger.info("Running clean")
-        self._run_command([BuilderAction.MAKE, MakeAction.CLEAN])
+        utils.run_make_command(
+            [BuilderAction.MAKE, MakeAction.CLEAN], cwd=self.nuttx_path
+        )
 
     def validate_nuttx_environment(self) -> tuple[bool, str]:
         """Validate NuttX environment and return (is_valid, error_message)."""
-        logger.debug(
-            f"Validating NuttX environment: nuttx_dir={self.nuttx_path}, "
-            f"apps_dir={self.apps_path}"
+        logger.info(
+            f"Validating NuttX environment: nuttx_dir={self.nuttx_path},"
+            f" apps_dir={self.apps_path}"
         )
 
         # Check for NuttX environment files
@@ -117,8 +121,8 @@ class NuttXBuilder:
             logger.error(f"Make.defs not found in apps directory: {self.apps_path}")
             return (
                 False,
-                f"Apps directory may not be properly configured (Make.defs missing): "
-                f"{self.apps_path}",
+                f"Apps directory may not be properly configured (Make.defs missing):"
+                f" {self.apps_path}",
             )
 
         logger.info("NuttX environment validation successful")
@@ -132,7 +136,6 @@ class NuttXBuilder:
             is_valid, error_msg = self.validate_nuttx_environment()
             if not is_valid:
                 logger.error(f"Validation failed: {error_msg}")
-                print(f"❌ Validation failed: {error_msg}")
                 return 1
 
             # Change to NuttX directory
@@ -144,7 +147,7 @@ class NuttXBuilder:
                 f"Running configure.sh with args: -a {self.rel_apps_path}"
                 f" {board}:{defconfig}"
             )
-            config_result = self._run_bash_script(
+            config_result = utils.run_bash_script(
                 "./tools/configure.sh",
                 args=[f"-a {self.rel_apps_path}", f"{board}:{defconfig}"],
                 cwd=self.nuttx_path,
@@ -158,48 +161,4 @@ class NuttXBuilder:
 
         except Exception as e:
             logger.error(f"Setup failed with error: {e}", exc_info=True)
-            print(f"Setup failed with error: {e}")
-            return 1
-
-    def _run_command(self, cmd: List[str], cwd: Optional[str] = None) -> int:
-        """Run a shell command and return exit code."""
-        if not cwd:
-            cwd = self.nuttx_path
-        logger.debug(f"Running command: {cmd} in cwd={cwd}")
-        try:
-            result = subprocess.run(
-                cmd,
-                cwd=cwd,
-                check=True,
-                capture_output=True,
-                text=True,
-            )
-            logger.debug(f"Command succeeded with return code: {result.returncode}")
-            return result
-        except subprocess.CalledProcessError as e:
-            logger.error(f"Command failed: {' '.join(cmd)}, error: {e}")
-            print(f"Command failed: {' '.join(cmd)}")
-            print(f"Error: {e}")
-            return e.returncode
-
-    def _run_bash_script(
-        self, script_path: str, args: List[str] = None, cwd: Optional[str] = None
-    ) -> int:
-        """Run a bash script using subprocess.call and return exit code."""
-        if not cwd:
-            cwd = self.nuttx_path
-        try:
-            cmd = [script_path]
-            if args:
-                cmd.extend(args)
-
-            cmd = " ".join(cmd)
-            logger.debug(f"Running bash script: {cmd} in cwd={cwd}")
-            result = subprocess.call(cmd, cwd=cwd, shell=True)
-            logger.debug(f"Bash script result: {result}")
-            return result
-
-        except Exception as e:
-            logger.error(f"Failed to run bash script {script_path}: {e}", exc_info=True)
-            print(f"Failed to run bash script {script_path}: {e}")
             return 1

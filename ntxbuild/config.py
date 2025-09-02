@@ -2,12 +2,17 @@
 Configuration management for NuttX builds.
 """
 
-import subprocess
+import logging
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
-import yaml
+from . import utils
+
+# Get logger for this module
+logger = logging.getLogger(__name__)
+
+KCONFIG_TWEAK = "kconfig-tweak"
 
 
 class KconfigTweakAction(str, Enum):
@@ -34,19 +39,9 @@ class KconfigTweakAction(str, Enum):
 class ConfigManager:
     """Manages NuttX build configurations."""
 
-    def __init__(self):
-        self.config = {}
-
-    def load_config(self, config_path: str) -> Dict[str, Any]:
-        """Load configuration from file."""
-        path = Path(config_path)
-        if not path.exists():
-            raise FileNotFoundError(f"Configuration file not found: {config_path}")
-
-        with open(path, "r") as f:
-            self.config = yaml.safe_load(f)
-
-        return self.config
+    def __init__(self, nuttxspace_path: Path):
+        self.nuttxspace_path = nuttxspace_path
+        self.nuttx_path = nuttxspace_path / "nuttx"
 
     def get_config(self, key: str, default: Any = None) -> Any:
         """Get configuration value."""
@@ -58,38 +53,49 @@ class ConfigManager:
         return True
 
     def kconfig_read(self, config: str, nuttx_dir: Path):
-        """Read Kconfig file. Returns the value read from the .config file."""
+        """Read Kconfig file"""
         try:
-            result = subprocess.run(
-                ["kconfig-tweak", KconfigTweakAction.STATE, config],
-                cwd=nuttx_dir,
-                check=True,
-                capture_output=True,
-                text=True,
+            result = utils.run_kconfig_command(
+                [KCONFIG_TWEAK, KconfigTweakAction.STATE, config], cwd=nuttx_dir
             )
-            value = result.stdout.strip()
-            print(f"{config}={value}")
-            if result.returncode != 0:
-                raise ValueError(f"Kconfig read failed: {result.stderr.strip()}")
-            return value
-        except subprocess.CalledProcessError as e:
-            print(f"Kconfig read failed: {e}")
-            return e.returncode
+            print(f"{config}={result.stdout.strip()}")
+            return result
+        except Exception as e:
+            logger.error(f"Kconfig read failed: {e}")
+            return 1
+
+    def kconfig_enable(self, config: str):
+        """Enable Kconfig option."""
+        try:
+            result = utils.run_kconfig_command(
+                [KCONFIG_TWEAK, KconfigTweakAction.ENABLE, config], cwd=self.nuttx_path
+            )
+            print(f"{config}={result.stdout.strip()}")
+            return result
+        except Exception as e:
+            logger.error(f"Kconfig read failed: {e}")
+            return 1
+
+    def kconfig_disable(self, config: str):
+        """Disable Kconfig option."""
+        try:
+            result = utils.run_kconfig_command(
+                [KCONFIG_TWEAK, KconfigTweakAction.DISABLE, config], cwd=self.nuttx_path
+            )
+            print(f"{config}={result.stdout.strip()}")
+            return result
+        except Exception as e:
+            logger.error(f"Kconfig read failed: {e}")
+            return 1
 
     def kconfig_apply_changes(self, nuttx_dir: Path):
         """Show all Kconfig options"""
         try:
-            result = subprocess.run(
-                ["make", "olddefconfig"],
-                cwd=nuttx_dir,
-                check=True,
-                capture_output=True,
-                text=True,
-            )
-            return result.returncode
-        except subprocess.CalledProcessError as e:
-            print(f"Kconfig apply changes failed: {e}")
-            return e.returncode
+            result = utils.run_make_command(["make", "olddefconfig"], cwd=nuttx_dir)
+            return result
+        except Exception as e:
+            logger.error(f"Kconfig apply changes failed: {e}")
+            return 1
 
     def kconfig_set_value(self, config: str, value: str, nuttx_dir: Path):
         """Set Kconfig value"""
@@ -99,29 +105,23 @@ class ConfigManager:
             raise ValueError("Value must be numerical")
 
         try:
-            result = subprocess.run(
-                ["kconfig-tweak", KconfigTweakAction.SET_VAL, config, str(value)],
+            result = utils.run_kconfig_command(
+                [KCONFIG_TWEAK, KconfigTweakAction.SET_VAL, config, str(value)],
                 cwd=nuttx_dir,
-                check=True,
-                capture_output=True,
-                text=True,
             )
             return result.returncode
-        except subprocess.CalledProcessError as e:
-            print(f"Kconfig set value failed: {e}")
-            return e.returncode
+        except Exception as e:
+            logger.error(f"Kconfig set value failed: {e}")
+            return 1
 
     def kconfig_set_str(self, config: str, value: str, nuttx_dir: Path):
         """Set Kconfig string"""
         try:
-            result = subprocess.run(
-                ["kconfig-tweak", KconfigTweakAction.SET_STR, config, value],
+            result = utils.run_kconfig_command(
+                [KCONFIG_TWEAK, KconfigTweakAction.SET_STR, config, value],
                 cwd=nuttx_dir,
-                check=True,
-                capture_output=True,
-                text=True,
             )
             return result.returncode
-        except subprocess.CalledProcessError as e:
-            print(f"Kconfig set string failed: {e}")
-            return e.returncode
+        except Exception as e:
+            logger.error(f"Kconfig set string failed: {e}")
+            return 1
