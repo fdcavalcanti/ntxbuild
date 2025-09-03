@@ -16,10 +16,11 @@ BOOL_CONFIGS = [
     "CONFIG_BOARDCTL_SPINLOCK",
     "CONFIG_EXAMPLES_HELLO",
 ]
-NUM_CONFIGS = ["CONFIG_FAT_MAXFNAME", "CONFIG_EXAMPLES_HELLO_PRIORITY"]
+NUM_CONFIGS = ["CONFIG_FAT_MAXFNAME", "CONFIG_SYSTEM_NSH_PRIORITY"]
 HEX_CONFIGS = ["CONFIG_SYSLOG_DEFAULT_MASK", "CONFIG_RAM_START"]
 
 TEST_STR_VALUE = "test_123456"
+TEST_NUM_VALUE = 50
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -38,12 +39,12 @@ def nuttx_path(nuttxspace_path):
 
 @pytest.mark.usefixtures("setup_board_sim_environment")
 @pytest.mark.parametrize("config", STR_CONFIGS)
-def test_config_read_write_str(config, nuttxspace_path, nuttx_path):
+def test_config_read_write_str(config, nuttxspace_path):
     config_manager = ConfigManager(nuttxspace_path)
-    initial_val = config_manager.kconfig_read(config, nuttx_path)
-    config_manager.kconfig_set_str(config, TEST_STR_VALUE, nuttx_path)
-    config_manager.kconfig_apply_changes(nuttx_path)
-    new_val = config_manager.kconfig_read(config, nuttx_path)
+    initial_val = config_manager.kconfig_read(config)
+    config_manager.kconfig_set_str(config, TEST_STR_VALUE)
+    config_manager.kconfig_apply_changes()
+    new_val = config_manager.kconfig_read(config)
 
     initial_val_str = initial_val.stdout.strip()
     new_val_str = new_val.stdout.strip()
@@ -54,17 +55,37 @@ def test_config_read_write_str(config, nuttxspace_path, nuttx_path):
 
 @pytest.mark.usefixtures("setup_board_sim_environment")
 @pytest.mark.parametrize("config", BOOL_CONFIGS)
-def test_config_read_write_bool(config, nuttxspace_path, nuttx_path):
+def test_config_read_write_bool(config, nuttxspace_path):
     config_manager = ConfigManager(nuttxspace_path)
-    initial_val = config_manager.kconfig_read(config, nuttx_path)
+    initial_val = config_manager.kconfig_read(config)
     init_val_str = initial_val.stdout.strip()
     if init_val_str == "y":
         config_manager.kconfig_disable(config)
     else:
         config_manager.kconfig_enable(config)
-    config_manager.kconfig_apply_changes(nuttx_path)
-    new_val = config_manager.kconfig_read(config, nuttx_path)
+    config_manager.kconfig_apply_changes()
+    new_val = config_manager.kconfig_read(config)
     new_val_str = new_val.stdout.strip()
 
     assert new_val != initial_val
     assert new_val_str in ("y", "n")
+
+
+@pytest.mark.parametrize("config", NUM_CONFIGS)
+def test_config_read_write_num(config, nuttxspace_path):
+    config_manager = ConfigManager(nuttxspace_path)
+    initial_val = config_manager.kconfig_read(config)
+    initial_val_str = initial_val.stdout.strip()
+    config_manager.kconfig_set_value(config, str(TEST_NUM_VALUE))
+    config_manager.kconfig_apply_changes()
+    new_val = config_manager.kconfig_read(config)
+    new_val_str = new_val.stdout.strip()
+
+    assert new_val_str == str(TEST_NUM_VALUE)
+    assert new_val_str != initial_val_str
+
+
+def test_read_write_invalid_num(nuttxspace_path):
+    config_manager = ConfigManager(nuttxspace_path)
+    with pytest.raises(ValueError):
+        config_manager.kconfig_set_value(NUM_CONFIGS[0], "invalid")
