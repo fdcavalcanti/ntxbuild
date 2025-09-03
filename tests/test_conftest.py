@@ -25,10 +25,3 @@ def test_nuttxspace_fixture(nuttxspace):
     # Verify these are git repositories
     assert (nuttx_dir / ".git").exists()
     assert (apps_dir / ".git").exists()
-
-
-def test_nuttxspace_cleanup(nuttxspace):
-    """Test that the workspace is properly cleaned up after tests."""
-    # This test will run after the fixture cleanup
-    # The workspace should be removed by the fixture's finally block
-    pass
