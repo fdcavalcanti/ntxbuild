@@ -2,10 +2,10 @@
 Command-line interface for ntxbuild.
 """
 
+import sys
 from pathlib import Path
 
 import click
-import sys
 
 from .build import NuttXBuilder
 from .config import ConfigManager
@@ -36,7 +36,7 @@ def start(board, defconfig):
     # Run NuttX setup using the builder (includes validation)
     click.echo("\n🔧 Setting up NuttX configuration...")
     click.echo(f"   NuttX directory: {current_dir}")
-    click.echo(f"   Apps directory: nuttx-apps")
+    click.echo("   Apps directory: nuttx-apps")
 
     builder = NuttXBuilder(nuttxspace_path)
     setup_result = builder.setup_nuttx(board, defconfig)
@@ -85,7 +85,8 @@ def build(parallel):
     """Build NuttX project"""
     nuttxspace_path = find_nuttx_root(Path.cwd(), "nuttx", "nuttx-apps")
     builder = NuttXBuilder(nuttxspace_path)
-    builder.build(parallel)
+    result = builder.build(parallel)
+    sys.exit(result)
 
 
 @main.command()
@@ -107,6 +108,7 @@ def clean():
     builder.clean()
     sys.exit(0)
 
+
 @main.command()
 def info():
     """Show build information"""
@@ -118,6 +120,7 @@ def info():
     else:
         click.echo("NuttX root not found in current directory tree")
     sys.exit(0)
+
 
 if __name__ == "__main__":
     main()

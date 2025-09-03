@@ -3,7 +3,9 @@ Utility functions for NuttX builds.
 """
 
 import logging
+import select
 import subprocess
+import sys
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -85,24 +87,78 @@ def run_kconfig_command(
 def run_make_command(
     cmd: List[str], cwd: Optional[str] = None
 ) -> subprocess.CompletedProcess:
-    """Run a make command and return CompletedProcess object."""
+    """Run a make command with real-time output using Popen."""
     logger.debug(f"Running make command: {' '.join(cmd)} in cwd={cwd}")
+
     try:
-        result = subprocess.run(
-            cmd, cwd=cwd, check=True, capture_output=True, text=True
+        # Use Popen for real-time output
+        process = subprocess.Popen(
+            cmd,
+            cwd=cwd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            bufsize=1,
+            universal_newlines=True,
         )
-        logger.debug(f"Make command succeeded with return code: {result.returncode}")
-        return result
-    except subprocess.CalledProcessError as e:
+
+        stdout_lines = []
+        stderr_lines = []
+
+        # Read output in real-time
+        while True:
+            # Check if process has finished
+            if process.poll() is not None:
+                break
+
+            # Check for available output
+            reads, _, _ = select.select([process.stdout, process.stderr], [], [], 0.1)
+
+            for stream in reads:
+                if stream == process.stdout:
+                    line = stream.readline()
+                    if line:
+                        line = line.rstrip()
+                        stdout_lines.append(line)
+                        print(line)  # Print stdout immediately
+                elif stream == process.stderr:
+                    line = stream.readline()
+                    if line:
+                        line = line.rstrip()
+                        stderr_lines.append(line)
+                        print(f"{line}", file=sys.stderr)  # Print stderr immediately
+
+        # Read any remaining output
+        remaining_stdout, remaining_stderr = process.communicate()
+        if remaining_stdout:
+            stdout_lines.extend(remaining_stdout.splitlines())
+        if remaining_stderr:
+            stderr_lines.extend(remaining_stderr.splitlines())
+
+        # Create CompletedProcess-like object
+        result = subprocess.CompletedProcess(
+            args=cmd,
+            returncode=process.returncode,
+            stdout="\n".join(stdout_lines),
+            stderr="\n".join(stderr_lines),
+        )
+
+        if process.returncode != 0:
+            logger.error(f"Make command failed with return code: {process.returncode}")
+
+        logger.debug(f"Make command succeeded with return code: {process.returncode}")
+        return result.returncode
+
+    except Exception as e:
         logger.error(f"Make command failed: {' '.join(cmd)}, error: {e}")
-        print(f"Make command failed: {' '.join(cmd)}")
-        print(f"Error: {e}")
-        raise
+        return e.returncode
 
 
 def find_nuttx_root(start_path: Path, nuttx_name: str, apps_name: str) -> Optional[str]:
     """Find the NuttX root directory."""
-    logging.debug(f"Finding NuttX root directory in {start_path} for directories {nuttx_name} and {apps_name}")
+    logging.debug(
+        f"Search NuttX root dir in {start_path} for {nuttx_name} and {apps_name}"
+    )
     path = start_path.resolve()
 
     while path != path.parent:
@@ -111,8 +167,10 @@ def find_nuttx_root(start_path: Path, nuttx_name: str, apps_name: str) -> Option
             return path
         path = path.parent
 
-    raise FileNotFoundError("NuttX workspace not found. "
-                            "Make sure nuttx and apps directories are present.")
+    raise FileNotFoundError(
+        "NuttX workspace not found. "
+        "Make sure nuttx and apps directories are present."
+    )
 
 
 def get_build_artifacts(build_dir: str) -> List[str]:

@@ -74,7 +74,7 @@ def test_setup_nuttx(builder):
 def test_build_sim(builder):
     """Test that build works with the test workspace."""
     ans = builder.build(PARALLEL_NPROCS)
-    assert ans.returncode == 0
+    assert ans == 0
 
 
 def test_build_success(builder):
