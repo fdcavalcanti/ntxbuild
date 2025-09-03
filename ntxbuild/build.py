@@ -4,6 +4,7 @@ Build system module for NuttX.
 
 import logging
 import os
+from pathlib import Path
 from enum import Enum
 
 from . import utils
@@ -52,7 +53,7 @@ class MakeAction(str, Enum):
 class NuttXBuilder:
     """Main builder class for NuttX projects."""
 
-    def __init__(self, nuttxspace_path: str = None):
+    def __init__(self, nuttxspace_path: Path = None):
         self.nuttxspace_path = nuttxspace_path
         self.nuttx_path = nuttxspace_path / "nuttx"
         self.apps_path = nuttxspace_path / "nuttx-apps"

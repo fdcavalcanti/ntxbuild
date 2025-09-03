@@ -7,6 +7,9 @@ import subprocess
 from pathlib import Path
 from typing import Dict, List, Optional
 
+NUTTX_DEFAULT_DIR_NAME = "nuttx"
+NUTTX_APPS_DEFAULT_DIR_NAME = "nuttx-apps"
+
 # Get logger for this module
 logger = logging.getLogger(__name__)
 
@@ -97,16 +100,19 @@ def run_make_command(
         raise
 
 
-def find_nuttx_root(start_path: str = ".") -> Optional[str]:
+def find_nuttx_root(start_path: Path, nuttx_name: str, apps_name: str) -> Optional[str]:
     """Find the NuttX root directory."""
-    path = Path(start_path).resolve()
+    logging.debug(f"Finding NuttX root directory in {start_path} for directories {nuttx_name} and {apps_name}")
+    path = start_path.resolve()
 
     while path != path.parent:
-        if (path / "nuttx").exists() and (path / "apps").exists():
-            return str(path)
+        if (path / nuttx_name).exists() and (path / apps_name).exists():
+            logging.debug(f"NuttX root directory found at {path}")
+            return path
         path = path.parent
 
-    return None
+    raise FileNotFoundError("NuttX workspace not found. "
+                            "Make sure nuttx and apps directories are present.")
 
 
 def get_build_artifacts(build_dir: str) -> List[str]:

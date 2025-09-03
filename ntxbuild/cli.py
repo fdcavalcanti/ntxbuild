@@ -5,6 +5,7 @@ Command-line interface for ntxbuild.
 from pathlib import Path
 
 import click
+import sys
 
 from .build import NuttXBuilder
 from .config import ConfigManager
@@ -19,12 +20,9 @@ def main():
 
 
 @main.command()
-@click.option(
-    "--apps", "-a", required=True, help="Path to apps folder (relative or absolute)"
-)
 @click.argument("board", nargs=1, required=True)
 @click.argument("defconfig", nargs=1, required=True)
-def start(apps, board, defconfig):
+def start(board, defconfig):
     """Initialize and validate NuttX environment"""
     current_dir = Path.cwd()
     click.secho("  📦 Board: ", fg="cyan", nl=False)
@@ -32,26 +30,24 @@ def start(apps, board, defconfig):
     click.secho("  ⚙️  Defconfig: ", fg="cyan", nl=False)
     click.secho(f"{defconfig}", bold=True)
 
-    # Handle apps path (now mandatory)
-    apps_path = Path(apps)
-    if not apps_path.is_absolute():
-        apps_path = current_dir / apps_path
+    nuttxspace_path = find_nuttx_root(current_dir, "nuttx", "nuttx-apps")
+    assert isinstance(nuttxspace_path, Path)
 
     # Run NuttX setup using the builder (includes validation)
     click.echo("\n🔧 Setting up NuttX configuration...")
-    click.echo(f"   Root directory: {current_dir}")
-    click.echo(f"   Apps directory: {apps_path.resolve()}")
+    click.echo(f"   NuttX directory: {current_dir}")
+    click.echo(f"   Apps directory: nuttx-apps")
 
-    builder = NuttXBuilder()
-    setup_result = builder.setup_nuttx(current_dir, apps_path, board, defconfig)
+    builder = NuttXBuilder(nuttxspace_path)
+    setup_result = builder.setup_nuttx(board, defconfig)
 
     if setup_result != 0:
         click.echo("❌ Setup failed")
-        return setup_result
+        return sys.exit(setup_result)
 
     click.echo("   ✅ Configuration completed successfully")
     click.echo("\n🚀 NuttX environment is ready!")
-    return 0
+    return sys.exit(0)
 
 
 @main.command()
@@ -78,11 +74,7 @@ def kconfig(read, set_value, set_str, apply, value):
     else:
         click.echo("❌ No action specified")
 
-    # if ret != 0:
-    #     click.echo("❌ Kconfig operation failed")
-    #     return ret
-
-    return 0
+    sys.exit(0)
 
 
 @main.command()
@@ -91,7 +83,8 @@ def kconfig(read, set_value, set_str, apply, value):
 )
 def build(parallel):
     """Build NuttX project"""
-    builder = NuttXBuilder()
+    nuttxspace_path = find_nuttx_root(Path.cwd(), "nuttx", "nuttx-apps")
+    builder = NuttXBuilder(nuttxspace_path)
     builder.build(parallel)
 
 
@@ -99,27 +92,32 @@ def build(parallel):
 def distclean():
     """Clean build artifacts"""
     click.echo("🧹 Resetting NuttX environment...")
-    builder = NuttXBuilder()
+    nuttxspace_path = find_nuttx_root(Path.cwd(), "nuttx", "nuttx-apps")
+    builder = NuttXBuilder(nuttxspace_path)
     builder.distclean()
+    sys.exit(0)
 
 
 @main.command()
 def clean():
     """Clean build artifacts"""
     click.echo("🧹 Cleaning build artifacts...")
-    builder = NuttXBuilder()
+    nuttxspace_path = find_nuttx_root(Path.cwd(), "nuttx", "nuttx-apps")
+    builder = NuttXBuilder(nuttxspace_path)
     builder.clean()
-
+    sys.exit(0)
 
 @main.command()
 def info():
     """Show build information"""
-    nuttx_root = find_nuttx_root()
+    nuttx_root = find_nuttx_root(Path.cwd(), "nuttx", "nuttx-apps")
     if nuttx_root:
         click.echo(f"NuttX root found at: {nuttx_root}")
+        click.echo(f"NuttX directory: {nuttx_root / 'nuttx'}")
+        click.echo(f"Apps directory: {nuttx_root / 'nuttx-apps'}")
     else:
         click.echo("NuttX root not found in current directory tree")
-
+    sys.exit(0)
 
 if __name__ == "__main__":
     main()
