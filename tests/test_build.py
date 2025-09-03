@@ -163,22 +163,22 @@ def test_invalid_nuttx_environment(tmp_path):
     nuttx_dir.mkdir()
 
     bad_builder = NuttXBuilder(tmp_path)
-    status, _ = bad_builder.validate_nuttx_environment()
-    assert status is False
+    ans = bad_builder.setup_nuttx(CONFIG_BOARD, CONFIG_DEFCONFIG)
+    assert ans != 0
 
     # Create a dummy Makefile
     makefile = nuttx_dir / "Makefile"
     makefile.write_text("CONTENT")
 
-    status, _ = bad_builder.validate_nuttx_environment()
-    assert status is False
+    ans = bad_builder.setup_nuttx(CONFIG_BOARD, CONFIG_DEFCONFIG)
+    assert ans != 0
 
     # Create a dummy INVIOLABLES.md
     inviolables = nuttx_dir / "INVIOLABLES.md"
     inviolables.write_text("CONTENT")
 
-    is_valid, _ = bad_builder.validate_nuttx_environment()
-    assert is_valid is False
+    ans = bad_builder.setup_nuttx(CONFIG_BOARD, CONFIG_DEFCONFIG)
+    assert ans != 0
 
 
 def test_invalid_apps_environment(tmp_path):
