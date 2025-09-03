@@ -4,8 +4,8 @@ Build system module for NuttX.
 
 import logging
 import os
-from pathlib import Path
 from enum import Enum
+from pathlib import Path
 
 from . import utils
 
@@ -53,10 +53,10 @@ class MakeAction(str, Enum):
 class NuttXBuilder:
     """Main builder class for NuttX projects."""
 
-    def __init__(self, nuttxspace_path: Path = None):
+    def __init__(self, nuttxspace_path: Path = None, apps_dir: str = None):
         self.nuttxspace_path = nuttxspace_path
         self.nuttx_path = nuttxspace_path / "nuttx"
-        self.apps_path = nuttxspace_path / "nuttx-apps"
+        self.apps_path = nuttxspace_path / apps_dir
         self.rel_apps_path = None
 
     def build(self, parallel: int = None):
@@ -132,6 +132,7 @@ class NuttXBuilder:
     def setup_nuttx(self, board: str, defconfig: str) -> int:
         """Run NuttX setup commands in the NuttX directory."""
         logger.info(f"Setting up NuttX: board={board}, defconfig={defconfig}")
+        old_dir = Path.cwd()
         try:
             # Validate environment first
             is_valid, error_msg = self.validate_nuttx_environment()
@@ -153,6 +154,10 @@ class NuttXBuilder:
                 args=[f"-a {self.rel_apps_path}", f"{board}:{defconfig}"],
                 cwd=self.nuttx_path,
             )
+
+            # Return to old directory after running configure.sh
+            os.chdir(old_dir)
+
             if config_result != 0:
                 logger.error(f"Configure script failed with exit code: {config_result}")
                 return config_result

@@ -25,7 +25,7 @@ TEST_NUM_VALUE = 50
 
 @pytest.fixture(scope="module", autouse=True)
 def setup_board_sim_environment(nuttxspace_path):
-    builder = NuttXBuilder(nuttxspace_path)
+    builder = NuttXBuilder(nuttxspace_path, "nuttx-apps")
     builder.distclean()
     builder.setup_nuttx(CONFIG_BOARD, CONFIG_DEFCONFIG)
     yield
@@ -40,7 +40,7 @@ def nuttx_path(nuttxspace_path):
 @pytest.mark.usefixtures("setup_board_sim_environment")
 @pytest.mark.parametrize("config", STR_CONFIGS)
 def test_config_read_write_str(config, nuttxspace_path):
-    config_manager = ConfigManager(nuttxspace_path)
+    config_manager = ConfigManager(nuttxspace_path, "nuttx")
     initial_val = config_manager.kconfig_read(config)
     config_manager.kconfig_set_str(config, TEST_STR_VALUE)
     config_manager.kconfig_apply_changes()
@@ -56,7 +56,7 @@ def test_config_read_write_str(config, nuttxspace_path):
 @pytest.mark.usefixtures("setup_board_sim_environment")
 @pytest.mark.parametrize("config", BOOL_CONFIGS)
 def test_config_read_write_bool(config, nuttxspace_path):
-    config_manager = ConfigManager(nuttxspace_path)
+    config_manager = ConfigManager(nuttxspace_path, "nuttx")
     initial_val = config_manager.kconfig_read(config)
     init_val_str = initial_val.stdout.strip()
     if init_val_str == "y":
@@ -73,7 +73,7 @@ def test_config_read_write_bool(config, nuttxspace_path):
 
 @pytest.mark.parametrize("config", NUM_CONFIGS)
 def test_config_read_write_num(config, nuttxspace_path):
-    config_manager = ConfigManager(nuttxspace_path)
+    config_manager = ConfigManager(nuttxspace_path, "nuttx")
     initial_val = config_manager.kconfig_read(config)
     initial_val_str = initial_val.stdout.strip()
     config_manager.kconfig_set_value(config, str(TEST_NUM_VALUE))
@@ -86,6 +86,6 @@ def test_config_read_write_num(config, nuttxspace_path):
 
 
 def test_read_write_invalid_num(nuttxspace_path):
-    config_manager = ConfigManager(nuttxspace_path)
+    config_manager = ConfigManager(nuttxspace_path, "nuttx")
     with pytest.raises(ValueError):
         config_manager.kconfig_set_value(NUM_CONFIGS[0], "invalid")

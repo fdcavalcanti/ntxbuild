@@ -9,7 +9,29 @@ import click
 
 from .build import NuttXBuilder
 from .config import ConfigManager
+from .env_data import clear_ntx_env, has_ntx_env, load_ntx_env, save_ntx_env
 from .utils import find_nuttx_root
+
+
+def prepare_env(nuttx_dir: str = None, apps_dir: str = None, start: bool = False):
+    current_dir = Path.cwd()
+    if has_ntx_env():
+        nuttxspace, nuttx, apps = load_ntx_env()
+        if not start:
+            assert current_dir == nuttxspace
+        return nuttxspace, nuttx, apps
+    else:
+        if start:
+            try:
+                find_nuttx_root(current_dir, nuttx_dir, apps_dir)
+            except FileNotFoundError as e:
+                raise click.ClickException(e)
+            save_ntx_env(current_dir, nuttx_dir, apps_dir)
+            return current_dir, nuttx_dir, apps_dir
+        else:
+            raise click.ClickException(
+                "No .ntxenv found. Please run 'start' command first."
+            )
 
 
 @click.group()
@@ -20,9 +42,11 @@ def main():
 
 
 @main.command()
+@click.option("--apps-dir", "-a", help="Apps directory", default="nuttx-apps")
+@click.option("--nuttx-dir", help="NuttX directory", default="nuttx")
 @click.argument("board", nargs=1, required=True)
 @click.argument("defconfig", nargs=1, required=True)
-def start(board, defconfig):
+def start(apps_dir, nuttx_dir, board, defconfig):
     """Initialize and validate NuttX environment"""
     current_dir = Path.cwd()
     click.secho("  📦 Board: ", fg="cyan", nl=False)
@@ -30,19 +54,20 @@ def start(board, defconfig):
     click.secho("  ⚙️  Defconfig: ", fg="cyan", nl=False)
     click.secho(f"{defconfig}", bold=True)
 
-    nuttxspace_path = find_nuttx_root(current_dir, "nuttx", "nuttx-apps")
-    assert isinstance(nuttxspace_path, Path)
+    # Check if .ntxenv file exists
+    _, nuttx_dir, apps_dir = prepare_env(nuttx_dir, apps_dir, True)
 
     # Run NuttX setup using the builder (includes validation)
     click.echo("\n🔧 Setting up NuttX configuration...")
-    click.echo(f"   NuttX directory: {current_dir}")
-    click.echo("   Apps directory: nuttx-apps")
+    click.echo(f"   NuttX directory: {nuttx_dir}")
+    click.echo(f"   Apps directory: {apps_dir}")
 
-    builder = NuttXBuilder(nuttxspace_path)
+    builder = NuttXBuilder(current_dir, apps_dir)
     setup_result = builder.setup_nuttx(board, defconfig)
 
     if setup_result != 0:
         click.echo("❌ Setup failed")
+        clear_ntx_env()
         return sys.exit(setup_result)
 
     click.echo("   ✅ Configuration completed successfully")
@@ -58,21 +83,26 @@ def start(board, defconfig):
 @click.argument("value", nargs=1, required=False)
 def kconfig(read, set_value, set_str, apply, value):
     """Read Kconfig file"""
-    config_manager = ConfigManager()
-    if read:
-        config_manager.kconfig_read(read)
-    elif set_value:
-        if not value:
-            click.echo("❌ Set value is required")
-        config_manager.kconfig_set_value(set_value, value)
-    elif set_str:
-        if not value:
-            click.echo("❌ Set string is required")
-        config_manager.kconfig_set_str(set_str, value)
-    elif apply:
-        config_manager.kconfig_apply_changes()
-    else:
-        click.echo("❌ No action specified")
+    try:
+        nuttxspace_path, nuttx_dir, _ = prepare_env()
+        config_manager = ConfigManager(nuttxspace_path, nuttx_dir)
+        if read:
+            config_manager.kconfig_read(read)
+        elif set_value:
+            if not value:
+                click.echo("❌ Set value is required")
+            config_manager.kconfig_set_value(set_value, value)
+        elif set_str:
+            if not value:
+                click.echo("❌ Set string is required")
+            config_manager.kconfig_set_str(set_str, value)
+        elif apply:
+            config_manager.kconfig_apply_changes()
+        else:
+            click.echo("❌ No action specified")
+    except click.ClickException as e:
+        click.echo(f"❌ {e}")
+        sys.exit(1)
 
     sys.exit(0)
 
@@ -83,43 +113,53 @@ def kconfig(read, set_value, set_str, apply, value):
 )
 def build(parallel):
     """Build NuttX project"""
-    nuttxspace_path = find_nuttx_root(Path.cwd(), "nuttx", "nuttx-apps")
-    builder = NuttXBuilder(nuttxspace_path)
-    result = builder.build(parallel)
-    sys.exit(result)
+    try:
+        nuttxspace_path, _, apps_dir = prepare_env()
+        builder = NuttXBuilder(nuttxspace_path, apps_dir)
+        result = builder.build(parallel)
+        sys.exit(result)
+    except click.ClickException as e:
+        click.echo(f"❌ {e}")
+        sys.exit(1)
 
 
 @main.command()
 def distclean():
     """Clean build artifacts"""
     click.echo("🧹 Resetting NuttX environment...")
-    nuttxspace_path = find_nuttx_root(Path.cwd(), "nuttx", "nuttx-apps")
-    builder = NuttXBuilder(nuttxspace_path)
+    current_dir, _, apps_dir = prepare_env()
+    builder = NuttXBuilder(current_dir, apps_dir)
     builder.distclean()
+    clear_ntx_env()
     sys.exit(0)
 
 
 @main.command()
 def clean():
     """Clean build artifacts"""
-    click.echo("🧹 Cleaning build artifacts...")
-    nuttxspace_path = find_nuttx_root(Path.cwd(), "nuttx", "nuttx-apps")
-    builder = NuttXBuilder(nuttxspace_path)
-    builder.clean()
-    sys.exit(0)
+    try:
+        click.echo("🧹 Cleaning build artifacts...")
+        nuttxspace_path, _, apps_dir = prepare_env()
+        builder = NuttXBuilder(nuttxspace_path, apps_dir)
+        builder.clean()
+        sys.exit(0)
+    except click.ClickException as e:
+        click.echo(f"❌ {e}")
+        sys.exit(1)
 
 
 @main.command()
 def info():
     """Show build information"""
-    nuttx_root = find_nuttx_root(Path.cwd(), "nuttx", "nuttx-apps")
-    if nuttx_root:
-        click.echo(f"NuttX root found at: {nuttx_root}")
-        click.echo(f"NuttX directory: {nuttx_root / 'nuttx'}")
-        click.echo(f"Apps directory: {nuttx_root / 'nuttx-apps'}")
-    else:
-        click.echo("NuttX root not found in current directory tree")
-    sys.exit(0)
+    try:
+        nuttxspace_path, nuttx_dir, apps_dir = prepare_env()
+        click.echo(f"NuttX root found at: {nuttxspace_path}")
+        click.echo(f"NuttX directory: {nuttxspace_path / nuttx_dir}")
+        click.echo(f"Apps directory: {nuttxspace_path / apps_dir}")
+        sys.exit(0)
+    except click.ClickException as e:
+        click.echo(f"❌ {e}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

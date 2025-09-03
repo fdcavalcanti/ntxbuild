@@ -38,9 +38,9 @@ class KconfigTweakAction(str, Enum):
 class ConfigManager:
     """Manages NuttX build configurations."""
 
-    def __init__(self, nuttxspace_path: Path):
+    def __init__(self, nuttxspace_path: Path, nuttx_dir: str = "nuttx"):
         self.nuttxspace_path = nuttxspace_path
-        self.nuttx_path = nuttxspace_path / "nuttx"
+        self.nuttx_path = nuttxspace_path / nuttx_dir
 
     def kconfig_read(self, config: str):
         """Read Kconfig file"""
