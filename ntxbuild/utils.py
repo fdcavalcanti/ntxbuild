@@ -7,42 +7,13 @@ import select
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 NUTTX_DEFAULT_DIR_NAME = "nuttx"
 NUTTX_APPS_DEFAULT_DIR_NAME = "nuttx-apps"
 
 # Get logger for this module
 logger = logging.getLogger(__name__)
-
-
-def run_command(
-    cmd: List[str], cwd: Optional[str] = None, env: Optional[Dict[str, str]] = None
-) -> subprocess.CompletedProcess:
-    """Run a shell command and return CompletedProcess object."""
-    logger.debug(f"Running command: {' '.join(cmd)} in cwd={cwd}")
-    try:
-        result = subprocess.run(
-            cmd, cwd=cwd, env=env, check=True, capture_output=True, text=True
-        )
-        logger.debug(f"Command succeeded with return code: {result.returncode}")
-        return result
-    except subprocess.CalledProcessError as e:
-        logger.error(f"Command failed: {' '.join(cmd)}, error: {e}")
-        print(f"Command failed: {' '.join(cmd)}")
-        print(f"Error: {e}")
-        raise
-
-
-def run_command_simple(
-    cmd: List[str], cwd: Optional[str] = None, env: Optional[Dict[str, str]] = None
-) -> int:
-    """Run a shell command and return exit code only."""
-    try:
-        result = run_command(cmd, cwd, env)
-        return result.returncode
-    except subprocess.CalledProcessError as e:
-        return e.returncode
 
 
 def run_bash_script(
