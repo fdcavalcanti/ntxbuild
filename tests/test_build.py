@@ -153,3 +153,61 @@ def test_logging_is_configured():
 
     # Check that logging level is set to DEBUG
     assert module_logger.level <= logging.DEBUG
+
+
+def test_invalid_nuttx_environment(tmp_path):
+    """Test that invalid environment validation works.
+    Create a temporary directory (tmp_path fixture) and make it invalid.
+    """
+    nuttx_dir = tmp_path / "nuttx"
+    nuttx_dir.mkdir()
+
+    bad_builder = NuttXBuilder(tmp_path)
+    status, _ = bad_builder.validate_nuttx_environment()
+    assert status is False
+
+    # Create a dummy Makefile
+    makefile = nuttx_dir / "Makefile"
+    makefile.write_text("CONTENT")
+
+    status, _ = bad_builder.validate_nuttx_environment()
+    assert status is False
+
+    # Create a dummy INVIOLABLES.md
+    inviolables = nuttx_dir / "INVIOLABLES.md"
+    inviolables.write_text("CONTENT")
+
+    is_valid, _ = bad_builder.validate_nuttx_environment()
+    assert is_valid is False
+
+
+def test_invalid_apps_environment(tmp_path):
+    """Test that invalid apps environment validation works.
+    Create a temporary directory (tmp_path fixture) and make it invalid.
+    """
+    nuttx_dir = tmp_path / "nuttx"
+    apps_dir = tmp_path / "nuttx-apps"
+    nuttx_dir.mkdir()
+
+    bad_builder = NuttXBuilder(tmp_path)
+
+    makefile = nuttx_dir / "Makefile"
+    makefile.write_text("CONTENT")
+    inviolables = nuttx_dir / "INVIOLABLES.md"
+    inviolables.write_text("CONTENT")
+
+    # Apps directory does not exist
+    status, _ = bad_builder.validate_nuttx_environment()
+    assert status is False
+
+    apps_dir.mkdir()
+
+    # Make.defs does not exist
+    status, _ = bad_builder.validate_nuttx_environment()
+    assert status is False
+
+    # Make.defs exists
+    make_defs = apps_dir / "Make.defs"
+    make_defs.write_text("CONTENT")
+    status, _ = bad_builder.validate_nuttx_environment()
+    assert status is True
