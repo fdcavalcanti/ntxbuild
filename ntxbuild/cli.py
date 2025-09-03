@@ -149,6 +149,20 @@ def clean():
 
 
 @main.command()
+@click.option("--menuconfig", "-m", help="Run menuconfig", is_flag=True)
+def menuconfig(menuconfig):
+    """Run menuconfig"""
+    try:
+        nuttxspace_path, _, apps_dir = prepare_env()
+        builder = NuttXBuilder(nuttxspace_path, apps_dir)
+        builder.run_menuconfig()
+        sys.exit(0)
+    except click.ClickException as e:
+        click.echo(f"❌ {e}")
+        sys.exit(1)
+
+
+@main.command()
 def info():
     """Show build information"""
     try:

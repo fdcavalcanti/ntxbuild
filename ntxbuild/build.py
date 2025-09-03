@@ -26,6 +26,7 @@ class BuilderAction(str, Enum):
     CONFIGURE = "configure"
     INFO = "info"
     MAKE = "make"
+    MENUCONFIG = "menuconfig"
 
 
 class MakeAction(str, Enum):
@@ -168,3 +169,10 @@ class NuttXBuilder:
         except Exception as e:
             logger.error(f"Setup failed with error: {e}", exc_info=True)
             return 1
+
+    def run_menuconfig(self):
+        """Run menuconfig"""
+        logger.info("Running menuconfig")
+        utils.run_curses_command(
+            [BuilderAction.MAKE, MakeAction.MENUCONFIG], cwd=self.nuttx_path
+        )

@@ -22,7 +22,7 @@ def _setup_logging():
 
     # Configure logging
     logging.basicConfig(
-        level=logging.DEBUG,
+        level=logging.WARNING,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         handlers=[
             logging.StreamHandler(sys.stdout),  # Console output
@@ -32,7 +32,7 @@ def _setup_logging():
 
     # Set our library logger level
     logger = logging.getLogger("ntxbuild")
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.WARNING)
 
 
 # Setup logging when module is imported

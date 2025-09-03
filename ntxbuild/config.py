@@ -91,3 +91,10 @@ class ConfigManager:
             cwd=self.nuttx_path,
         )
         return result
+
+    def kconfig_menuconfig(self):
+        """Run menuconfig"""
+        result = utils.run_kconfig_command(
+            [KCONFIG_TWEAK, KconfigTweakAction.MENUCONFIG], cwd=self.nuttx_path
+        )
+        return result

@@ -125,16 +125,48 @@ def run_make_command(
         return e.returncode
 
 
+def run_curses_command(cmd: List[str], cwd: Optional[str] = None) -> int:
+    """Run a curses-based program with proper terminal handling.
+
+    This function is designed for interactive curses programs like menuconfig,
+    vim, nano, etc. that require a proper terminal interface.
+
+    Args:
+        cmd: Command to run as a list of strings
+        cwd: Working directory for the command
+
+    Returns:
+        Exit code of the command
+    """
+    logger.debug(f"Running curses command: {' '.join(cmd)} in cwd={cwd}")
+
+    try:
+        # For curses programs, we need to run them directly without pipes
+        # to preserve the terminal interface
+        process = subprocess.run(
+            cmd,
+            cwd=cwd,
+            check=False,  # Don't raise exception on non-zero exit codes
+        )
+
+        logger.debug(f"Curses command completed with return code: {process.returncode}")
+        return process.returncode
+
+    except Exception as e:
+        logger.error(f"Curses command failed: {' '.join(cmd)}, error: {e}")
+        return 1
+
+
 def find_nuttx_root(start_path: Path, nuttx_name: str, apps_name: str) -> Optional[str]:
     """Find the NuttX root directory."""
-    logging.debug(
+    logger.debug(
         f"Search NuttX root dir in {start_path} for {nuttx_name} and {apps_name}"
     )
     path = start_path.resolve()
 
     while path != path.parent:
         if (path / nuttx_name).exists() and (path / apps_name).exists():
-            logging.debug(f"NuttX root directory found at {path}")
+            logger.debug(f"NuttX root directory found at {path}")
             return path
         path = path.parent
 
