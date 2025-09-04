@@ -60,6 +60,12 @@ class NuttXBuilder:
         self.apps_path = nuttxspace_path / apps_dir
         self.rel_apps_path = None
 
+    def make(self, command: str):
+        """Run make command."""
+        logger.info(f"Running make command: {command}")
+        cmd_list = [BuilderAction.MAKE] + command.split()
+        return utils.run_make_command(cmd_list, cwd=self.nuttx_path)
+
     def build(self, parallel: int = None):
         """Build the NuttX project."""
         logger.info(f"Starting build with parallel={parallel}")

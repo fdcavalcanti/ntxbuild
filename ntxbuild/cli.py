@@ -149,6 +149,23 @@ def clean():
 
 
 @main.command()
+@click.argument("command", nargs=1, required=True)
+def make(command):
+    """Passes make commands to NuttX build system.
+    Can be used to run any make command.
+    """
+    try:
+        click.echo(f"🧹 Running make {command}")
+        nuttxspace_path, _, apps_dir = prepare_env()
+        builder = NuttXBuilder(nuttxspace_path, apps_dir)
+        builder.make(command)
+        sys.exit(0)
+    except click.ClickException as e:
+        click.echo(f"❌ {e}")
+        sys.exit(1)
+
+
+@main.command()
 @click.option("--menuconfig", "-m", help="Run menuconfig", is_flag=True)
 def menuconfig(menuconfig):
     """Run menuconfig"""
