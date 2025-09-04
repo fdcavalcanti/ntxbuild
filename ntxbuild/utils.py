@@ -62,19 +62,16 @@ def run_make_command(
     logger.debug(f"Running make command: {' '.join(cmd)} in cwd={cwd}")
 
     try:
-        # Use Popen for real-time output
+        # Use Popen for real-time output and binary mode to
+        # preserve control characters
         process = subprocess.Popen(
             cmd,
             cwd=cwd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            text=True,
-            bufsize=1,
-            universal_newlines=True,
+            text=False,  # Use binary mode
+            bufsize=0,  # No buffering
         )
-
-        stdout_lines = []
-        stderr_lines = []
 
         # Read output in real-time
         while True:
@@ -87,38 +84,38 @@ def run_make_command(
 
             for stream in reads:
                 if stream == process.stdout:
-                    line = stream.readline()
-                    if line:
-                        line = line.rstrip()
-                        stdout_lines.append(line)
-                        print(line)  # Print stdout immediately
-                elif stream == process.stderr:
-                    line = stream.readline()
-                    if line:
-                        line = line.rstrip()
-                        stderr_lines.append(line)
-                        print(f"{line}", file=sys.stderr)  # Print stderr immediately
+                    chunk = stream.read(1024)  # Read in chunks
+                    if chunk:
+                        # Decode and print immediately, preserving control characters
+                        text = chunk.decode("utf-8", errors="replace")
+                        print(text, end="", flush=True)
 
-        # Read any remaining output
+                elif stream == process.stderr:
+                    chunk = stream.read(1024)  # Read in chunks
+                    if chunk:
+                        # Decode and print immediately, preserving control characters
+                        text = chunk.decode("utf-8", errors="replace")
+                        print(text, end="", file=sys.stderr, flush=True)
+
+        # Read any remaining output and print it
         remaining_stdout, remaining_stderr = process.communicate()
         if remaining_stdout:
-            stdout_lines.extend(remaining_stdout.splitlines())
+            print(
+                remaining_stdout.decode("utf-8", errors="replace"), end="", flush=True
+            )
         if remaining_stderr:
-            stderr_lines.extend(remaining_stderr.splitlines())
-
-        # Create CompletedProcess-like object
-        result = subprocess.CompletedProcess(
-            args=cmd,
-            returncode=process.returncode,
-            stdout="\n".join(stdout_lines),
-            stderr="\n".join(stderr_lines),
-        )
+            print(
+                remaining_stderr.decode("utf-8", errors="replace"),
+                end="",
+                file=sys.stderr,
+                flush=True,
+            )
 
         if process.returncode != 0:
             logger.error(f"Make command failed with return code: {process.returncode}")
 
         logger.debug(f"Make command succeeded with return code: {process.returncode}")
-        return result.returncode
+        return process.returncode
 
     except Exception as e:
         logger.error(f"Make command failed: {' '.join(cmd)}, error: {e}")
