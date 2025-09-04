@@ -4,8 +4,10 @@ Utility functions for NuttX builds.
 
 import logging
 import select
+import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from typing import List, Optional
 
@@ -184,3 +186,111 @@ def get_build_artifacts(build_dir: str) -> List[str]:
                 artifacts.append(str(item))
 
     return artifacts
+
+
+def copy_nuttxspace_to_tmp(
+    nuttxspace_path: str, num_copies: int, target_dir: str = "/tmp"
+) -> List[str]:
+    """Copy nuttxspace to target directory for parallel builds, excluding
+    unnecessary files.
+
+    Args:
+        nuttxspace_path: Path to the original nuttxspace directory
+        num_copies: Number of copies to create
+        target_dir: Target directory for copies (default: /tmp)
+
+    Returns:
+        List of paths to the copied directories in target directory
+    """
+    logger.debug(
+        f"Copying nuttxspace {nuttxspace_path} to {target_dir} for {num_copies} "
+        "parallel builds"
+    )
+
+    source_path = Path(nuttxspace_path)
+    if not source_path.exists():
+        raise FileNotFoundError(f"Nuttxspace directory not found: {nuttxspace_path}")
+
+    # Ensure target directory exists
+    target_path = Path(target_dir)
+    target_path.mkdir(parents=True, exist_ok=True)
+
+    # Define patterns to exclude for lightweight copies
+    exclude_patterns = {
+        ".git",
+        ".gitattributes",
+        ".github",
+        ".vscode",
+    }
+
+    def ignore_patterns(dir_path, names):
+        """Filter function to exclude unnecessary files and directories."""
+        ignored = []
+        for name in names:
+            # Check if name matches any exclude pattern
+            if name in exclude_patterns:
+                ignored.append(name)
+            # Check for patterns with wildcards
+            elif any(
+                name.endswith(pattern[1:])
+                for pattern in exclude_patterns
+                if pattern.startswith("*")
+            ):
+                ignored.append(name)
+            # Check for hidden files (except .ntxenv which we might need)
+            elif name.startswith(".") and name not in {".ntxenv", ".config"}:
+                ignored.append(name)
+        return ignored
+
+    copied_paths = []
+
+    try:
+        for i in range(num_copies):
+            # Create unique temporary directory name
+            temp_dir = tempfile.mkdtemp(prefix=f"nuttxspace_{i}_", dir=target_dir)
+            temp_path = Path(temp_dir)
+
+            logger.debug(f"Copying to: {temp_path}")
+
+            # Copy the nuttxspace directory with exclusions
+            shutil.copytree(
+                source_path,
+                temp_path,
+                ignore=ignore_patterns,
+                dirs_exist_ok=True,
+                symlinks=True,
+            )
+
+            copied_paths.append(str(temp_path))
+
+        logger.info(
+            f"Successfully created {num_copies} lightweight copies in {target_dir}"
+        )
+        return copied_paths
+
+    except Exception as e:
+        logger.error(f"Failed to copy nuttxspace: {e}")
+        # Clean up any partially created copies
+        for path in copied_paths:
+            try:
+                shutil.rmtree(path)
+            except Exception:
+                pass
+        raise
+
+
+def cleanup_tmp_copies(copied_paths: List[str]) -> None:
+    """Clean up temporary copies of nuttxspace.
+
+    Args:
+        copied_paths: List of paths to temporary directories to remove
+    """
+    logger.debug(f"Cleaning up {len(copied_paths)} temporary copies")
+
+    for path in copied_paths:
+        try:
+            if Path(path).exists():
+                shutil.rmtree(path)
+                logger.debug(f"Removed temporary copy: {path}")
+        except Exception as e:
+            logger.warning(f"Failed to remove temporary copy {path}: {e}")
