@@ -9,13 +9,13 @@ description = "NuttX Build System Assistant"
 readme = "README.md"
 license = {text = "Apache-2.0"}
 authors = [
-    {name = "NuttX Community"}
+    {name = "Filipe Cavalcanti"}
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: Apache Software License",
-    "Operating System :: OS Independent",
+    "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",

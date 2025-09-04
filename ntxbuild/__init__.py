@@ -39,5 +39,5 @@ def _setup_logging():
 _setup_logging()
 
 __version__ = "0.1.0"
-__author__ = "NuttX Community"
+__author__ = "Filipe Cavalcanti"
 __description__ = "NuttX Build System Assistant"
