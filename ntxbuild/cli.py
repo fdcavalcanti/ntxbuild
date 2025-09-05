@@ -50,7 +50,7 @@ def prepare_env(nuttx_dir: str = None, apps_dir: str = None, start: bool = False
 def main(log_level):
     """NuttX Build System Assistant"""
     # Reconfigure logging with the user-specified level
-    click.echo(f"Setting logging level to {log_level}")
+    logger.info(f"Setting logging level to {log_level}")
     log_level_value = getattr(logging, log_level.upper())
 
     # Get the root logger and update its level
@@ -208,17 +208,24 @@ def menuconfig(menuconfig):
 
 
 @main.command()
-def info():
+@click.option("--binary", "-b", help="Run menuconfig", is_flag=True)
+@click.argument("binary_name", nargs=1, required=False, default="nuttx.bin")
+def info(binary, binary_name):
     """Show build information"""
     try:
         nuttxspace_path, nuttx_dir, apps_dir = prepare_env()
         click.echo(f"NuttX root found at: {nuttxspace_path}")
         click.echo(f"NuttX directory: {nuttxspace_path / nuttx_dir}")
         click.echo(f"Apps directory: {nuttxspace_path / apps_dir}")
-        sys.exit(0)
     except click.ClickException as e:
         click.echo(f"❌ {e}")
         sys.exit(1)
+
+    if binary:
+        builder = NuttXBuilder(nuttxspace_path, apps_dir)
+        builder.print_binary_info(binary_name)
+
+    sys.exit(0)
 
 
 if __name__ == "__main__":

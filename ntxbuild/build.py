@@ -4,6 +4,7 @@ Build system module for NuttX.
 
 import logging
 import os
+import subprocess
 from enum import Enum
 from pathlib import Path
 
@@ -182,3 +183,70 @@ class NuttXBuilder:
         utils.run_curses_command(
             [BuilderAction.MAKE, MakeAction.MENUCONFIG], cwd=self.nuttx_path
         )
+
+    def print_binary_info(self, binary_path: str = "nuttx.bin"):
+        """Print binary information including file size and architecture.
+
+        Args:
+            binary_path: Path to the binary file relative to nuttx directory
+        """
+        logger.info(f"Printing binary information for: {binary_path}")
+
+        # Construct full path to binary
+        full_binary_path = self.nuttx_path / binary_path
+
+        if not full_binary_path.exists():
+            logger.error(f"Binary file not found: {full_binary_path}")
+            print(f"Error: Binary file not found: {full_binary_path}")
+            return
+
+        try:
+            # Get file size
+            file_size = full_binary_path.stat().st_size
+            print(f"Binary: {binary_path}")
+            print(f"File size: {file_size:,} bytes ({file_size / 1024:.2f} KB)")
+
+            # Try to get architecture information using file command
+            try:
+                # Use subprocess.run similar to utils.py pattern
+                result = subprocess.run(
+                    ["file", str(full_binary_path)],
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                )
+                file_info = result.stdout.strip()
+
+                # Parse and format file information nicely
+                self._print_formatted_file_info(file_info)
+
+            except subprocess.CalledProcessError as e:
+                logger.error(f"File command failed: {e}")
+                print("File info: Unable to determine (file command failed)")
+            except FileNotFoundError:
+                logger.error("File command not available")
+                print("File info: Unable to determine (file command not available)")
+
+        except Exception as e:
+            logger.error(f"Error getting binary information: {e}")
+            print(f"Error: {e}")
+
+    def _print_formatted_file_info(self, file_info: str):
+        """Parse and format file command output into readable lines.
+
+        Args:
+            file_info: Raw output from file command
+        """
+        # Remove the filename prefix (everything before the first colon)
+        if ":" in file_info:
+            info_part = file_info.split(":", 1)[1].strip()
+        else:
+            info_part = file_info
+
+        # Split by commas and clean up
+        parts = [part.strip() for part in info_part.split(",")]
+
+        print("File type:")
+        for part in parts:
+            if part:
+                print(f"  • {part}")
