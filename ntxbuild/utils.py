@@ -15,7 +15,7 @@ NUTTX_DEFAULT_DIR_NAME = "nuttx"
 NUTTX_APPS_DEFAULT_DIR_NAME = "nuttx-apps"
 
 # Get logger for this module
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("ntxbuild.utils")
 
 
 def run_bash_script(

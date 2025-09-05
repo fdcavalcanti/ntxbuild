@@ -9,7 +9,7 @@ from pathlib import Path
 from . import utils
 
 # Get logger for this module
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("ntxbuild.config")
 
 KCONFIG_TWEAK = "kconfig-tweak"
 

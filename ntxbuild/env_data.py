@@ -3,6 +3,9 @@ import shelve
 from pathlib import Path
 from typing import Optional, Tuple
 
+# Get logger for this module
+logger = logging.getLogger("ntxbuild.env_data")
+
 
 def get_env_file_path() -> Path:
     """Get the path to the .ntxenv file in the current or target directory."""
@@ -51,7 +54,7 @@ def load_ntx_env() -> Optional[Tuple[str, str, str]]:
 def clear_ntx_env() -> None:
     """Clear the NuttX environment configuration file."""
     env_file = get_env_file_path()
-    logging.debug(f"Clearing NuttX environment configuration file: {env_file}")
+    logger.debug(f"Clearing NuttX environment configuration file: {env_file}")
     if env_file.exists():
         try:
             env_file.unlink()

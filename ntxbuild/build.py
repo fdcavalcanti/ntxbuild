@@ -10,7 +10,7 @@ from pathlib import Path
 from . import utils
 
 # Get logger for this module
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("ntxbuild.build")
 
 
 class BuilderAction(str, Enum):

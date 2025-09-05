@@ -2,6 +2,7 @@
 Command-line interface for ntxbuild.
 """
 
+import logging
 import sys
 from pathlib import Path
 
@@ -11,6 +12,8 @@ from .build import NuttXBuilder
 from .config import ConfigManager
 from .env_data import clear_ntx_env, has_ntx_env, load_ntx_env, save_ntx_env
 from .utils import find_nuttx_root
+
+logger = logging.getLogger("ntxbuild.cli")
 
 
 def prepare_env(nuttx_dir: str = None, apps_dir: str = None, start: bool = False):
@@ -35,10 +38,35 @@ def prepare_env(nuttx_dir: str = None, apps_dir: str = None, start: bool = False
 
 
 @click.group()
+@click.option(
+    "--log-level",
+    type=click.Choice(
+        ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], case_sensitive=False
+    ),
+    default="WARNING",
+    help="Set the logging level (default: WARNING)",
+)
 @click.version_option()
-def main():
+def main(log_level):
     """NuttX Build System Assistant"""
-    pass
+    # Reconfigure logging with the user-specified level
+    click.echo(f"Setting logging level to {log_level}")
+    log_level_value = getattr(logging, log_level.upper())
+
+    # Get the root logger and update its level
+    root_logger = logging.getLogger()
+    root_logger.setLevel(log_level_value)
+
+    # Update all existing handlers to use the new level
+    for handler in root_logger.handlers:
+        handler.setLevel(log_level_value)
+
+    # Set the ntxbuild parent logger level (this will affect all child loggers)
+    ntxbuild_logger = logging.getLogger("ntxbuild")
+    ntxbuild_logger.setLevel(log_level_value)
+
+    # Set the specific logger level
+    logger.setLevel(log_level_value)
 
 
 @main.command()

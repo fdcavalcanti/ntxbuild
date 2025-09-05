@@ -20,13 +20,12 @@ def _setup_logging():
     log_dir = Path.home() / ".ntxbuild" / "logs"
     log_dir.mkdir(parents=True, exist_ok=True)
 
-    # Configure logging
+    # Configure logging.
     logging.basicConfig(
         level=logging.WARNING,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         handlers=[
             logging.StreamHandler(sys.stdout),  # Console output
-            logging.FileHandler(log_dir / "ntxbuild.log"),  # File output
         ],
     )
 
