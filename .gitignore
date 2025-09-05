@@ -121,3 +121,6 @@ dmypy.json
 
 # NuttX
 nuttxspace/
+
+# Auto-generated version file
+ntxbuild/_version.py
