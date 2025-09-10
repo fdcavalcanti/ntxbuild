@@ -88,7 +88,7 @@ def start(apps_dir, nuttx_dir, board, defconfig):
     # Run NuttX setup using the builder (includes validation)
     click.echo("\n🔧 Setting up NuttX configuration...")
     click.echo(f"   NuttX directory: {nuttx_dir}")
-    click.echo(f"   Apps directory: {apps_dir}")
+    click.echo(f"   Apps directory: {apps_dir}\n")
 
     builder = NuttXBuilder(current_dir, apps_dir)
     setup_result = builder.setup_nuttx(board, defconfig)
@@ -98,7 +98,8 @@ def start(apps_dir, nuttx_dir, board, defconfig):
         clear_ntx_env()
         return sys.exit(setup_result)
 
-    click.echo("   ✅ Configuration completed successfully")
+    click.echo("")
+    click.echo("✅ Configuration completed successfully")
     click.echo("\n🚀 NuttX environment is ready!")
     return sys.exit(0)
 
