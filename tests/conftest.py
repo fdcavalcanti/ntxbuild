@@ -25,7 +25,6 @@ def nuttxspace():
     # Create the temporary workspace
     logging.info("Creating NuttX workspace for tests")
     workspace = Path(__file__).parent / "nuttxspace"
-    workspace.mkdir(exist_ok=True)
 
     # Check if workspace already exists
     if workspace.exists():
@@ -35,6 +34,8 @@ def nuttxspace():
         )
         yield workspace
         return
+
+    workspace.mkdir(exist_ok=True)
 
     try:
         # Clone NuttX repository (light clone)
