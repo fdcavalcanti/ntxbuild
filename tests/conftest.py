@@ -7,7 +7,8 @@ import shutil
 from pathlib import Path
 
 import pytest
-from git import Repo
+
+from ntxbuild.setup import download_nuttx_apps_repo, download_nuttx_repo
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -40,25 +41,11 @@ def nuttxspace():
     try:
         # Clone NuttX repository (light clone)
         nuttx_dir = workspace / "nuttx"
-        logging.info(f"Cloning apache/nuttx to {nuttx_dir}")
-        Repo.clone_from(
-            "https://github.com/apache/nuttx.git",
-            nuttx_dir,
-            depth=1,  # Light clone - only latest commit
-            single_branch=True,  # Only main branch
-            branch="master",
-        )
+        download_nuttx_repo(destination=nuttx_dir)
 
         # Clone NuttX apps repository (light clone)
         apps_dir = workspace / "nuttx-apps"
-        logging.info(f"Cloning apache/nuttx-apps to {apps_dir}")
-        Repo.clone_from(
-            "https://github.com/apache/nuttx-apps.git",
-            apps_dir,
-            depth=1,  # Light clone - only latest commit
-            single_branch=True,  # Only main branch
-            branch="master",
-        )
+        download_nuttx_apps_repo(destination=apps_dir)
 
         logging.info(f"✅ NuttX workspace created at {workspace}")
         yield workspace

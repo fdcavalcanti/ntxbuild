@@ -171,7 +171,8 @@ def find_nuttx_root(start_path: Path, nuttx_name: str, apps_name: str) -> Option
 
     raise FileNotFoundError(
         "NuttX workspace not found. "
-        "Make sure nuttx and apps directories are present."
+        "Make sure nuttx and apps directories are present or call "
+        "'ntxbuild install' to download."
     )
 
 

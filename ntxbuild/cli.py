@@ -11,6 +11,7 @@ import click
 from .build import NuttXBuilder
 from .config import ConfigManager
 from .env_data import clear_ntx_env, has_ntx_env, load_ntx_env, save_ntx_env
+from .setup import download_nuttx_apps_repo, download_nuttx_repo
 from .utils import find_nuttx_root
 
 logger = logging.getLogger("ntxbuild.cli")
@@ -67,6 +68,26 @@ def main(log_level):
 
     # Set the specific logger level
     logger.setLevel(log_level_value)
+
+
+@main.command()
+def install():
+    """Install NuttX and Apps repositories"""
+    current_dir = Path.cwd()
+    click.echo("🚀 Downloading NuttX and Apps repositories...")
+    nuttx_dir = "nuttx"
+    apps_dir = "nuttx-apps"
+
+    try:
+        find_nuttx_root(current_dir, nuttx_dir, apps_dir)
+        click.echo("✅ NuttX and Apps directories already exist.")
+    except FileNotFoundError:
+        download_nuttx_repo()
+        download_nuttx_apps_repo()
+        find_nuttx_root(current_dir, nuttx_dir, apps_dir)
+
+    click.echo("✅ Installation completed successfully.")
+    sys.exit(0)
 
 
 @main.command()
