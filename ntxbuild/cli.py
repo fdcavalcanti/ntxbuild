@@ -93,9 +93,10 @@ def install():
 @main.command()
 @click.option("--apps-dir", "-a", help="Apps directory", default="nuttx-apps")
 @click.option("--nuttx-dir", help="NuttX directory", default="nuttx")
+@click.option("--store-nxtmpdir", "-S", is_flag=True, help="Use nxtmpdir on nuttxspace")
 @click.argument("board", nargs=1, required=True)
 @click.argument("defconfig", nargs=1, required=True)
-def start(apps_dir, nuttx_dir, board, defconfig):
+def start(apps_dir, nuttx_dir, store_nxtmpdir, board, defconfig):
     """Initialize and validate NuttX environment"""
     current_dir = Path.cwd()
     click.secho("  📦 Board: ", fg="cyan", nl=False)
@@ -111,8 +112,13 @@ def start(apps_dir, nuttx_dir, board, defconfig):
     click.echo(f"   NuttX directory: {nuttx_dir}")
     click.echo(f"   Apps directory: {apps_dir}\n")
 
-    builder = NuttXBuilder(current_dir, apps_dir)
-    setup_result = builder.setup_nuttx(board, defconfig)
+    builder = NuttXBuilder(current_dir, nuttx_dir, apps_dir)
+
+    extra_args = []
+    if store_nxtmpdir:
+        extra_args.append("-S")
+
+    setup_result = builder.setup_nuttx(board, defconfig, extra_args)
 
     if setup_result != 0:
         click.echo("❌ Setup failed")
@@ -164,8 +170,8 @@ def kconfig(read, set_value, set_str, apply, value):
 def build(parallel):
     """Build NuttX project"""
     try:
-        nuttxspace_path, _, apps_dir = prepare_env()
-        builder = NuttXBuilder(nuttxspace_path, apps_dir)
+        nuttxspace_path, nuttx_dir, apps_dir = prepare_env()
+        builder = NuttXBuilder(nuttxspace_path, nuttx_dir, apps_dir)
         result = builder.build(parallel)
         sys.exit(result)
     except click.ClickException as e:
@@ -177,8 +183,8 @@ def build(parallel):
 def distclean():
     """Clean build artifacts"""
     click.echo("🧹 Resetting NuttX environment...")
-    current_dir, _, apps_dir = prepare_env()
-    builder = NuttXBuilder(current_dir, apps_dir)
+    current_dir, nuttx_dir, apps_dir = prepare_env()
+    builder = NuttXBuilder(current_dir, nuttx_dir, apps_dir)
     builder.distclean()
     clear_ntx_env()
     sys.exit(0)
@@ -189,8 +195,8 @@ def clean():
     """Clean build artifacts"""
     try:
         click.echo("🧹 Cleaning build artifacts...")
-        nuttxspace_path, _, apps_dir = prepare_env()
-        builder = NuttXBuilder(nuttxspace_path, apps_dir)
+        nuttxspace_path, nuttx_dir, apps_dir = prepare_env()
+        builder = NuttXBuilder(nuttxspace_path, nuttx_dir, apps_dir)
         builder.clean()
         sys.exit(0)
     except click.ClickException as e:
@@ -206,8 +212,8 @@ def make(command):
     """
     try:
         click.echo(f"🧹 Running make {command}")
-        nuttxspace_path, _, apps_dir = prepare_env()
-        builder = NuttXBuilder(nuttxspace_path, apps_dir)
+        nuttxspace_path, nuttx_dir, apps_dir = prepare_env()
+        builder = NuttXBuilder(nuttxspace_path, nuttx_dir, apps_dir)
         builder.make(command)
         sys.exit(0)
     except click.ClickException as e:
@@ -220,8 +226,8 @@ def make(command):
 def menuconfig(menuconfig):
     """Run menuconfig"""
     try:
-        nuttxspace_path, _, apps_dir = prepare_env()
-        builder = NuttXBuilder(nuttxspace_path, apps_dir)
+        nuttxspace_path, nuttx_dir, apps_dir = prepare_env()
+        builder = NuttXBuilder(nuttxspace_path, nuttx_dir, apps_dir)
         builder.run_menuconfig()
         sys.exit(0)
     except click.ClickException as e:
@@ -244,7 +250,7 @@ def info(binary, binary_name):
         sys.exit(1)
 
     if binary:
-        builder = NuttXBuilder(nuttxspace_path, apps_dir)
+        builder = NuttXBuilder(nuttxspace_path, nuttx_dir, apps_dir)
         builder.print_binary_info(binary_name)
 
     sys.exit(0)

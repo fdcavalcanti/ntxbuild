@@ -55,9 +55,14 @@ class MakeAction(str, Enum):
 class NuttXBuilder:
     """Main builder class for NuttX projects."""
 
-    def __init__(self, nuttxspace_path: Path = None, apps_dir: str = None):
+    def __init__(
+        self,
+        nuttxspace_path: Path = None,
+        os_dir: str = "nuttx",
+        apps_dir: str = "nuttx-apps",
+    ):
         self.nuttxspace_path = nuttxspace_path
-        self.nuttx_path = nuttxspace_path / "nuttx"
+        self.nuttx_path = nuttxspace_path / os_dir
         self.apps_path = nuttxspace_path / apps_dir
         self.rel_apps_path = None
 
