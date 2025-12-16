@@ -8,6 +8,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 from typing import List, Optional
 
@@ -58,7 +59,10 @@ def run_kconfig_command(
 
 
 def run_make_command(
-    cmd: List[str], cwd: Optional[str] = None
+    cmd: List[str],
+    cwd: Optional[str] = None,
+    no_stdout: bool = False,
+    no_stderr: bool = False,
 ) -> subprocess.CompletedProcess:
     """Run a make command with real-time output using Popen."""
     logger.debug(f"Running make command: {' '.join(cmd)} in cwd={cwd}")
@@ -69,11 +73,22 @@ def run_make_command(
         process = subprocess.Popen(
             cmd,
             cwd=cwd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE if not no_stdout else subprocess.DEVNULL,
+            stderr=subprocess.PIPE if not no_stderr else subprocess.DEVNULL,
             text=False,  # Use binary mode
             bufsize=0,  # No buffering
         )
+
+        if no_stdout and no_stderr:
+            process.wait()
+            return process.returncode
+
+        # Build list of readable streams (only include pipes, not DEVNULL)
+        readable_streams = []
+        if not no_stdout:
+            readable_streams.append(process.stdout)
+        if not no_stderr:
+            readable_streams.append(process.stderr)
 
         # Read output in real-time
         while True:
@@ -81,8 +96,13 @@ def run_make_command(
             if process.poll() is not None:
                 break
 
-            # Check for available output
-            reads, _, _ = select.select([process.stdout, process.stderr], [], [], 0.1)
+            # Check for available output (only if we have valid streams)
+            if readable_streams:
+                reads, _, _ = select.select(readable_streams, [], [], 0.1)
+            else:
+                # No streams to read, just wait a bit
+                time.sleep(0.1)
+                continue
 
             for stream in reads:
                 if stream == process.stdout:

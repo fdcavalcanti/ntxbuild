@@ -65,12 +65,19 @@ class NuttXBuilder:
         self.nuttx_path = nuttxspace_path / os_dir
         self.apps_path = nuttxspace_path / apps_dir
         self.rel_apps_path = None
+        self.no_stdout = False
+        self.no_stderr = False
 
     def make(self, command: str):
         """Run make command."""
         logger.info(f"Running make command: {command}")
         cmd_list = [BuilderAction.MAKE] + command.split()
-        return utils.run_make_command(cmd_list, cwd=self.nuttx_path)
+        return utils.run_make_command(
+            cmd_list,
+            cwd=self.nuttx_path.absolute(),
+            no_stdout=self.no_stdout,
+            no_stderr=self.no_stderr,
+        )
 
     def build(self, parallel: int = None):
         """Build the NuttX project."""
@@ -80,20 +87,31 @@ class NuttXBuilder:
         else:
             args = []
 
-        return utils.run_make_command([BuilderAction.MAKE] + args, cwd=self.nuttx_path)
+        return utils.run_make_command(
+            [BuilderAction.MAKE] + args,
+            cwd=self.nuttx_path.absolute(),
+            no_stdout=self.no_stdout,
+            no_stderr=self.no_stderr,
+        )
 
     def distclean(self):
         """Distclean the NuttX project."""
         logger.info("Running distclean")
         utils.run_make_command(
-            [BuilderAction.MAKE, MakeAction.DISTCLEAN], cwd=self.nuttx_path
+            [BuilderAction.MAKE, MakeAction.DISTCLEAN],
+            cwd=self.nuttx_path.absolute(),
+            no_stdout=self.no_stdout,
+            no_stderr=self.no_stderr,
         )
 
     def clean(self):
         """Clean build artifacts."""
         logger.info("Running clean")
         utils.run_make_command(
-            [BuilderAction.MAKE, MakeAction.CLEAN], cwd=self.nuttx_path
+            [BuilderAction.MAKE, MakeAction.CLEAN],
+            cwd=self.nuttx_path.absolute(),
+            no_stdout=self.no_stdout,
+            no_stderr=self.no_stderr,
         )
 
     def validate_nuttx_environment(self) -> tuple[bool, str]:
@@ -255,3 +273,11 @@ class NuttXBuilder:
         for part in parts:
             if part:
                 print(f"  • {part}")
+
+    def supress_stdout(self, enable: bool) -> None:
+        """Suppress stdout."""
+        self.no_stdout = enable
+
+    def supress_stderr(self, enable: bool) -> None:
+        """Suppress stderr."""
+        self.no_stderr = enable
