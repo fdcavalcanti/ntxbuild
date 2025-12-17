@@ -160,7 +160,9 @@ class NuttXBuilder:
         logger.info("NuttX environment validation successful")
         return True, ""
 
-    def setup_nuttx(self, board: str, defconfig: str) -> int:
+    def setup_nuttx(
+        self, board: str, defconfig: str, extra_args: list[str] = []
+    ) -> int:
         """Run NuttX setup commands in the NuttX directory."""
         logger.info(f"Setting up NuttX: board={board}, defconfig={defconfig}")
         old_dir = Path.cwd()
@@ -180,9 +182,16 @@ class NuttXBuilder:
                 f"Running configure.sh with args: -a {self.rel_apps_path}"
                 f" {board}:{defconfig}"
             )
+
+            config_args = [
+                *extra_args,
+                f"-a {self.rel_apps_path}",
+                f"{board}:{defconfig}",
+            ]
+
             config_result = utils.run_bash_script(
                 "./tools/configure.sh",
-                args=[f"-a {self.rel_apps_path}", f"{board}:{defconfig}"],
+                args=config_args,
                 cwd=self.nuttx_path,
             )
 
