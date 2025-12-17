@@ -20,7 +20,11 @@ logger = logging.getLogger("ntxbuild.utils")
 
 
 def run_bash_script(
-    script_path: str, args: List[str] = None, cwd: Optional[str] = None
+    script_path: str,
+    args: List[str] = None,
+    cwd: Optional[str] = None,
+    no_stdout: bool = False,
+    no_stderr: bool = False,
 ) -> int:
     """Run a bash script using subprocess.call and return exit code."""
     try:
@@ -30,7 +34,13 @@ def run_bash_script(
 
         cmd_str = " ".join(cmd)
         logger.debug(f"Running bash script: {cmd_str} in cwd={cwd}")
-        result = subprocess.call(cmd_str, cwd=cwd, shell=True)
+        result = subprocess.call(
+            cmd_str,
+            cwd=cwd,
+            shell=True,
+            stdout=subprocess.DEVNULL if no_stdout else None,
+            stderr=subprocess.DEVNULL if no_stderr else None,
+        )
         logger.debug(f"Bash script result: {result}")
         return result
 
