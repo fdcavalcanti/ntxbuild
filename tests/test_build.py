@@ -17,7 +17,7 @@ PARALLEL_NPROCS = 4
 
 @pytest.fixture(scope="module", autouse=True)
 def builder(nuttxspace_path):
-    builder = NuttXBuilder(nuttxspace_path, "nuttx-apps")
+    builder = NuttXBuilder(nuttxspace_path, "nuttx", "nuttx-apps")
     yield builder
     builder.distclean()
 
@@ -162,7 +162,7 @@ def test_invalid_nuttx_environment(tmp_path):
     nuttx_dir = tmp_path / "nuttx"
     nuttx_dir.mkdir()
 
-    bad_builder = NuttXBuilder(tmp_path, "nuttx-apps")
+    bad_builder = NuttXBuilder(tmp_path, "nuttx", "nuttx-apps")
     ans = bad_builder.setup_nuttx(CONFIG_BOARD, CONFIG_DEFCONFIG)
     assert ans != 0
 
@@ -189,7 +189,7 @@ def test_invalid_apps_environment(tmp_path):
     apps_dir = tmp_path / "nuttx-apps"
     nuttx_dir.mkdir()
 
-    bad_builder = NuttXBuilder(tmp_path, "nuttx-apps")
+    bad_builder = NuttXBuilder(tmp_path, "nuttx", "nuttx-apps")
 
     makefile = nuttx_dir / "Makefile"
     makefile.write_text("CONTENT")
