@@ -193,6 +193,8 @@ class NuttXBuilder:
                 "./tools/configure.sh",
                 args=config_args,
                 cwd=self.nuttx_path,
+                no_stdout=self.no_stdout,
+                no_stderr=self.no_stderr,
             )
 
             # Return to old directory after running configure.sh
