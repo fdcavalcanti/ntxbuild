@@ -177,17 +177,14 @@ class NuttXBuilder:
             logger.debug(f"Changing to NuttX directory: {self.nuttx_path}")
             os.chdir(self.nuttx_path)
 
-            # Run configure script
-            logger.info(
-                f"Running configure.sh with args: -a {self.rel_apps_path}"
-                f" {board}:{defconfig}"
-            )
-
             config_args = [
                 *extra_args,
                 f"-a {self.rel_apps_path}",
                 f"{board}:{defconfig}",
             ]
+
+            # Run configure script
+            logger.info(f"Running configure.sh with args: {config_args}")
 
             config_result = utils.run_bash_script(
                 "./tools/configure.sh",
