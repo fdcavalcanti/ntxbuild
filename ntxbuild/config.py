@@ -12,6 +12,7 @@ from . import utils
 logger = logging.getLogger("ntxbuild.config")
 
 KCONFIG_TWEAK = "kconfig-tweak"
+KCONFIG_MERGE = "kconfig-merge"
 
 
 class KconfigTweakAction(str, Enum):
@@ -96,5 +97,19 @@ class ConfigManager:
         """Run menuconfig"""
         result = utils.run_kconfig_command(
             [KCONFIG_TWEAK, KconfigTweakAction.MENUCONFIG], cwd=self.nuttx_path
+        )
+        return result
+
+    def kconfig_merge_config_file(self, source_file: str, config_file: str = None):
+        """Merge Kconfig file"""
+        if not source_file:
+            raise ValueError("Source file is required")
+
+        if not config_file:
+            config_file = (Path(self.nuttx_path) / ".config").as_posix()
+
+        source_file = Path(source_file).resolve().as_posix()
+        result = utils.run_kconfig_command(
+            [KCONFIG_MERGE, "-m", config_file, source_file], cwd=self.nuttx_path
         )
         return result

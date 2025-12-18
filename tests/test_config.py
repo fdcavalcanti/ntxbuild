@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 from ntxbuild.build import NuttXBuilder
@@ -25,7 +27,7 @@ TEST_NUM_VALUE = 50
 
 @pytest.fixture(scope="module", autouse=True)
 def setup_board_sim_environment(nuttxspace_path):
-    builder = NuttXBuilder(nuttxspace_path, "nuttx-apps")
+    builder = NuttXBuilder(nuttxspace_path)
     builder.distclean()
     builder.setup_nuttx(CONFIG_BOARD, CONFIG_DEFCONFIG)
     yield
@@ -89,3 +91,20 @@ def test_read_write_invalid_num(nuttxspace_path):
     config_manager = ConfigManager(nuttxspace_path, "nuttx")
     with pytest.raises(ValueError):
         config_manager.kconfig_set_value(NUM_CONFIGS[0], "invalid")
+
+
+def test_merge_config(nuttxspace_path):
+    config_manager = ConfigManager(nuttxspace_path, "nuttx")
+    this_file = Path(__file__).resolve()
+
+    config_manager.kconfig_merge_config_file(
+        this_file.parent / "configs" / "test_config", None
+    )
+    config_manager.kconfig_apply_changes()
+
+    value = config_manager.kconfig_read("CONFIG_NSH_SYSINITSCRIPT")
+    assert value.stdout.strip() == "test_value"
+    value = config_manager.kconfig_read("CONFIG_SYSTEM_DD")
+    assert value.stdout.strip() == "n"
+    value = config_manager.kconfig_read("CONFIG_DEV_GPIO_NSIGNALS")
+    assert value.stdout.strip() == "2"
