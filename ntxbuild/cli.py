@@ -136,8 +136,9 @@ def start(apps_dir, nuttx_dir, store_nxtmpdir, board, defconfig):
 @click.option("--set-value", help="Set Kconfig value")
 @click.option("--set-str", help="Set Kconfig string")
 @click.option("--apply", "-a", help="Apply Kconfig options", is_flag=True)
+@click.option("--merge", "-m", help="Merge Kconfig file", is_flag=True)
 @click.argument("value", nargs=1, required=False)
-def kconfig(read, set_value, set_str, apply, value):
+def kconfig(read, set_value, set_str, apply, value, merge):
     """Read Kconfig file"""
     try:
         nuttxspace_path, nuttx_dir, _ = prepare_env()
@@ -154,6 +155,10 @@ def kconfig(read, set_value, set_str, apply, value):
             config_manager.kconfig_set_str(set_str, value)
         elif apply:
             config_manager.kconfig_apply_changes()
+        elif merge:
+            if not value:
+                click.echo("❌ Merge file is required")
+            config_manager.kconfig_merge_config_file(value, None)
         else:
             click.echo("❌ No action specified")
     except click.ClickException as e:
