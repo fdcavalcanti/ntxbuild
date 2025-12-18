@@ -37,14 +37,16 @@ Menuconfig works just as usual through this tool.
 
 The following are features that should be added to this project:
 
-1. Publish on PyPi
+1. (OK) Publish on PyPi
 2. Add build using CMake
 3. Checkpatch script support
 4. Download and install compilers
 5. Open the docs for a board
 6. Improve support for installing source (multi thread and API improvements)
 7. Export defconfig (make savedefconfig)
-8. Support disabling build log output
-9. Prettify logging: add colored output and option to log to file
-10. Replace the shelve module: use .ini file instead
-11. Add support for custom Make options on `NuttXBuilder.build`
+8. (OK) Support kconfig-merger
+9. (OK) Support disabling build log output
+10. Prettify logging: add colored output and option to log to file
+11. Replace the shelve module: use .ini file instead
+12. Add support for custom Make options on `NuttXBuilder.build`
+13. (Partial support) Support extra flags on configure.sh script

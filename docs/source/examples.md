@@ -53,11 +53,13 @@ ntxbuild kconfig [OPTIONS] [VALUE]
 - `--set-value TEXT`: Set Kconfig value
 - `--set-str TEXT`: Set Kconfig string
 - `--apply, -a`: Apply Kconfig options
+- `--merge, -m`: Merge Kconfig file
 
 **Examples:**
 ```bash
 ntxbuild kconfig --set-value CONFIG_DEBUG=y
 ntxbuild kconfig --set-str CONFIG_APP_NAME="MyApp"
+ntxbuild kconfig merge /path/to/kconfig
 ntxbuild kconfig --apply
 ```
 
