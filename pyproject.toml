@@ -72,6 +72,7 @@ norecursedirs = ["nuttxspace"]
 
 [tool.setuptools_scm]
 write_to = "ntxbuild/_version.py"
+local_scheme = "no-local-version"
 
 [tool.setuptools.packages.find]
 include = ["ntxbuild*"]
