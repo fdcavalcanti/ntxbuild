@@ -91,7 +91,7 @@ def run_make_command(
 
         if no_stdout and no_stderr:
             process.wait()
-            return process.returncode
+            return process
 
         # Build list of readable streams (only include pipes, not DEVNULL)
         readable_streams = []
@@ -147,14 +147,16 @@ def run_make_command(
             logger.error(f"Make command failed with return code: {process.returncode}")
 
         logger.debug(f"Make command succeeded with return code: {process.returncode}")
-        return process.returncode
+        return process
 
     except Exception as e:
         logger.error(f"Make command failed: {' '.join(cmd)}, error: {e}")
-        return e.returncode
+        return e
 
 
-def run_curses_command(cmd: List[str], cwd: Optional[str] = None) -> int:
+def run_curses_command(
+    cmd: List[str], cwd: Optional[str] = None
+) -> subprocess.CompletedProcess:
     """Run a curses-based program with proper terminal handling.
 
     This function is designed for interactive curses programs like menuconfig,
@@ -179,7 +181,7 @@ def run_curses_command(cmd: List[str], cwd: Optional[str] = None) -> int:
         )
 
         logger.debug(f"Curses command completed with return code: {process.returncode}")
-        return process.returncode
+        return process
 
     except Exception as e:
         logger.error(f"Curses command failed: {' '.join(cmd)}, error: {e}")
