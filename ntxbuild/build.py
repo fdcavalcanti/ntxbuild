@@ -15,6 +15,12 @@ logger = logging.getLogger("ntxbuild.build")
 
 
 class BuilderAction(str, Enum):
+    """Enumeration of builder actions.
+
+    This enum defines the available actions that can be performed
+    by the NuttX builder.
+    """
+
     def __str__(self):
         return str(self.value)
 
@@ -31,6 +37,12 @@ class BuilderAction(str, Enum):
 
 
 class MakeAction(str, Enum):
+    """Enumeration of make targets.
+
+    This enum defines the available make targets that can be used
+    with NuttX build system.
+    """
+
     def __str__(self):
         return str(self.value)
 
@@ -53,7 +65,11 @@ class MakeAction(str, Enum):
 
 
 class NuttXBuilder:
-    """Main builder class for NuttX projects."""
+    """Main builder class for NuttX projects.
+
+    This class allows you to trigger make commands, setup NuttX for a
+    board:config, build, distclean, clean, menuconfig, etc.
+    """
 
     def __init__(
         self,
@@ -61,6 +77,16 @@ class NuttXBuilder:
         os_dir: str = "nuttx",
         apps_dir: str = "nuttx-apps",
     ):
+        """Initialize the NuttX builder class.
+
+        Args:
+            nuttxspace_path: Path to the NuttX repository workspace.
+                If None, must be set later. Defaults to None.
+            os_dir: Name of the NuttX OS directory within the workspace.
+                Defaults to "nuttx".
+            apps_dir: Name of the NuttX apps directory within the workspace.
+                Defaults to "nuttx-apps".
+        """
         self.nuttxspace_path = nuttxspace_path
         self.nuttx_path = nuttxspace_path / os_dir
         self.apps_path = nuttxspace_path / apps_dir
@@ -69,7 +95,17 @@ class NuttXBuilder:
         self.no_stderr = False
 
     def make(self, command: str) -> subprocess.CompletedProcess:
-        """Run make command."""
+        """Run any make command inside NuttX directory.
+
+        Args:
+            command: The make command to run. It can be any make command,
+                such as "all", "clean", "distclean", "menuconfig", etc.
+                Multiple arguments can be space-separated.
+
+        Returns:
+            subprocess.CompletedProcess: The result of the make command.
+                Check the returncode attribute to determine success (0) or failure.
+        """
         logger.info(f"Running make command: {command}")
         cmd_list = [BuilderAction.MAKE] + command.split()
         return utils.run_make_command(
@@ -80,7 +116,16 @@ class NuttXBuilder:
         )
 
     def build(self, parallel: int = None) -> subprocess.CompletedProcess:
-        """Build the NuttX project."""
+        """Build the NuttX project.
+
+        Args:
+            parallel: Number of parallel jobs to use for building.
+                If None, uses default make parallelism. Defaults to None.
+
+        Returns:
+            subprocess.CompletedProcess: The result of the build command.
+                Check the returncode attribute to determine success (0) or failure.
+        """
         logger.info(f"Starting build with parallel={parallel}")
         if parallel:
             args = [f"-j{parallel}"]
@@ -95,7 +140,14 @@ class NuttXBuilder:
         )
 
     def distclean(self) -> subprocess.CompletedProcess:
-        """Distclean the NuttX project."""
+        """Perform a distclean on the NuttX project.
+
+        This removes all generated files including configuration files.
+
+        Returns:
+            subprocess.CompletedProcess: The result of the distclean command.
+                Check the returncode attribute to determine success (0) or failure.
+        """
         logger.info("Running distclean")
         return utils.run_make_command(
             [BuilderAction.MAKE, MakeAction.DISTCLEAN],
@@ -105,7 +157,15 @@ class NuttXBuilder:
         )
 
     def clean(self) -> subprocess.CompletedProcess:
-        """Clean build artifacts."""
+        """Clean build artifacts.
+
+        Removes object files and other build artifacts, but preserves
+        configuration files.
+
+        Returns:
+            subprocess.CompletedProcess: The result of the clean command.
+                Check the returncode attribute to determine success (0) or failure.
+        """
         logger.info("Running clean")
         return utils.run_make_command(
             [BuilderAction.MAKE, MakeAction.CLEAN],
@@ -115,7 +175,16 @@ class NuttXBuilder:
         )
 
     def validate_nuttx_environment(self) -> tuple[bool, str]:
-        """Validate NuttX environment and return (is_valid, error_message)."""
+        """Validate NuttX environment.
+
+        Checks for required NuttX files (Makefile, INVIOLABLES.md) and
+        validates the apps directory structure.
+
+        Returns:
+            tuple[bool, str]: A tuple containing:
+                - bool: True if environment is valid, False otherwise.
+                - str: Error message if validation failed, empty string if valid.
+        """
         logger.info(
             f"Validating NuttX environment: nuttx_dir={self.nuttx_path},"
             f" apps_dir={self.apps_path}"
@@ -163,7 +232,23 @@ class NuttXBuilder:
     def setup_nuttx(
         self, board: str, defconfig: str, extra_args: list[str] = []
     ) -> int:
-        """Run NuttX setup commands in the NuttX directory."""
+        """Run NuttX setup commands in the NuttX directory.
+
+        Configures NuttX for the specified board and defconfig by running
+        the configure.sh script. This method validates the environment
+        before attempting configuration.
+
+        Args:
+            board: The board name (e.g., "stm32f4discovery").
+            defconfig: The defconfig name (e.g., "nsh").
+            extra_args: Additional arguments to pass to configure.sh.
+                Defaults to empty list.
+
+        Returns:
+            int: Exit code of the configure script. Returns 0 on success,
+                1 on validation failure or exception, or the configure script's
+                exit code if it fails.
+        """
         logger.info(f"Setting up NuttX: board={board}, defconfig={defconfig}")
         old_dir = Path.cwd()
         try:
@@ -209,7 +294,16 @@ class NuttXBuilder:
             return 1
 
     def run_menuconfig(self) -> subprocess.CompletedProcess:
-        """Run menuconfig"""
+        """Run menuconfig.
+
+        Opens the interactive menu configuration interface for NuttX.
+        This is a curses-based interface that allows interactive configuration
+        of NuttX build options.
+
+        Returns:
+            subprocess.CompletedProcess: The result of the menuconfig command.
+                Check the returncode attribute to determine success (0) or failure.
+        """
         logger.info("Running menuconfig")
         return utils.run_curses_command(
             [BuilderAction.MAKE, MakeAction.MENUCONFIG], cwd=self.nuttx_path
@@ -218,8 +312,16 @@ class NuttXBuilder:
     def print_binary_info(self, binary_path: str = "nuttx.bin") -> None:
         """Print binary information including file size and architecture.
 
+        Prints binary file information to stdout, including file size and
+        architecture details (if available via the 'file' command).
+
         Args:
-            binary_path: Path to the binary file relative to nuttx directory
+            binary_path: Path to the binary file relative to nuttx directory.
+                Defaults to "nuttx.bin".
+
+        Note:
+            If the binary file is not found or the 'file' command is unavailable,
+            an error message will be printed instead.
         """
         logger.info(f"Printing binary information for: {binary_path}")
 
@@ -265,8 +367,11 @@ class NuttXBuilder:
     def _print_formatted_file_info(self, file_info: str) -> None:
         """Parse and format file command output into readable lines.
 
+        This is a private helper method that formats the output from the
+        'file' command into a more readable format with bullet points.
+
         Args:
-            file_info: Raw output from file command
+            file_info: Raw output from file command.
         """
         # Remove the filename prefix (everything before the first colon)
         if ":" in file_info:
@@ -283,9 +388,23 @@ class NuttXBuilder:
                 print(f"  • {part}")
 
     def supress_stdout(self, enable: bool) -> None:
-        """Suppress stdout."""
+        """Suppress stdout output from make commands.
+
+        Controls whether stdout from subsequent make commands should be
+        suppressed or displayed.
+
+        Args:
+            enable: If True, suppress stdout. If False, show stdout.
+        """
         self.no_stdout = enable
 
     def supress_stderr(self, enable: bool) -> None:
-        """Suppress stderr."""
+        """Suppress stderr output from make commands.
+
+        Controls whether stderr from subsequent make commands should be
+        suppressed or displayed.
+
+        Args:
+            enable: If True, suppress stderr. If False, show stderr.
+        """
         self.no_stderr = enable

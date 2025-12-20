@@ -1,6 +1,8 @@
 """
-NuttX environment setup.
-Downloads NuttX and NuttX Apps.
+NuttX environment setup module.
+
+This module provides functions to download and set up the NuttX OS
+and NuttX Apps repositories from their GitHub sources.
 """
 
 import logging
@@ -19,8 +21,28 @@ def download_nuttx_repo(
     single_branch: bool = True,
     branch_name: str = "master",
 ) -> None:
-    """Download NuttX repository to current directory if no path destination
-    path is provided.
+    """Download NuttX repository from GitHub.
+
+    Clones the NuttX OS repository to the specified destination or to
+    a "nuttx" subdirectory in the current working directory if no
+    destination is provided.
+
+    Args:
+        source: URL of the NuttX repository to clone.
+            Defaults to the official Apache NuttX repository.
+        destination: Path where the repository should be cloned.
+            If None, clones to "nuttx" in the current directory.
+            Defaults to None.
+        depth: Depth for shallow clone. 1 means only the latest commit.
+            Defaults to 1.
+        single_branch: If True, clone only the specified branch.
+            Defaults to True.
+        branch_name: Name of the branch to clone. Defaults to "master".
+
+    Raises:
+        git.exc.GitCommandError: If the git clone operation fails.
+        git.exc.InvalidGitRepositoryError: If the destination path
+            already exists and is not a valid git repository.
     """
 
     if not destination:
@@ -47,8 +69,28 @@ def download_nuttx_apps_repo(
     single_branch: bool = True,
     branch_name: str = "master",
 ) -> None:
-    """Download NuttX Apps repository to current directory if no destination
-    path is provided.
+    """Download NuttX Apps repository from GitHub.
+
+    Clones the NuttX Apps repository to the specified destination or to
+    a "nuttx-apps" subdirectory in the current working directory if no
+    destination is provided.
+
+    Args:
+        source: URL of the NuttX Apps repository to clone.
+            Defaults to the official Apache NuttX Apps repository.
+        destination: Path where the repository should be cloned.
+            If None, clones to "nuttx-apps" in the current directory.
+            Defaults to None.
+        depth: Depth for shallow clone. 1 means only the latest commit.
+            Defaults to 1.
+        single_branch: If True, clone only the specified branch.
+            Defaults to True.
+        branch_name: Name of the branch to clone. Defaults to "master".
+
+    Raises:
+        git.exc.GitCommandError: If the git clone operation fails.
+        git.exc.InvalidGitRepositoryError: If the destination path
+            already exists and is not a valid git repository.
     """
     if not destination:
         current_dir = Path.cwd()

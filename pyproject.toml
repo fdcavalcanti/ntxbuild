@@ -46,7 +46,6 @@ docs= [
     "sphinx>=8.0.0",
     "myst-nb",
     "sphinx-rtd-theme",
-    "furo",
 ]
 
 [project.scripts]

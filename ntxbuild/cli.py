@@ -17,7 +17,31 @@ from .utils import find_nuttx_root
 logger = logging.getLogger("ntxbuild.cli")
 
 
-def prepare_env(nuttx_dir: str = None, apps_dir: str = None, start: bool = False):
+def prepare_env(
+    nuttx_dir: str = None, apps_dir: str = None, start: bool = False
+) -> tuple[Path, str, str]:
+    """Prepare and validate the NuttX environment.
+
+    Loads the environment from .ntxenv file if it exists, or initializes
+    a new environment if start is True. Validates that the current
+    directory matches the stored environment.
+
+    Args:
+        nuttx_dir: Name of the NuttX OS directory. Defaults to None.
+        apps_dir: Name of the NuttX apps directory. Defaults to None.
+        start: If True, allows initializing a new environment. If False,
+            requires an existing .ntxenv file. Defaults to False.
+
+    Returns:
+        tuple[Path, str, str]: A tuple containing:
+            - Path to the NuttX workspace
+            - Name of the NuttX OS directory
+            - Name of the NuttX apps directory
+
+    Raises:
+        click.ClickException: If environment validation fails or
+            .ntxenv is not found when start is False.
+    """
     current_dir = Path.cwd()
     if has_ntx_env():
         nuttxspace, nuttx, apps = load_ntx_env()
@@ -49,7 +73,16 @@ def prepare_env(nuttx_dir: str = None, apps_dir: str = None, start: bool = False
 )
 @click.version_option()
 def main(log_level):
-    """NuttX Build System Assistant"""
+    """NuttX Build System Assistant.
+
+    Main entry point for the ntxbuild command-line interface.
+    Configures logging based on the specified log level.
+
+    Args:
+        log_level: Logging level to use. Can be one of:
+            DEBUG, INFO, WARNING, ERROR, or CRITICAL.
+            Defaults to WARNING.
+    """
     # Reconfigure logging with the user-specified level
     logger.info(f"Setting logging level to {log_level}")
     log_level_value = getattr(logging, log_level.upper())
@@ -72,7 +105,14 @@ def main(log_level):
 
 @main.command()
 def install():
-    """Install NuttX and Apps repositories"""
+    """Install NuttX and Apps repositories.
+
+    Downloads the NuttX OS and Apps repositories if they don't already
+    exist in the current directory. If the repositories are already
+    present, this command will verify their existence.
+
+    Exits with code 0 on success.
+    """
     current_dir = Path.cwd()
     click.echo("🚀 Downloading NuttX and Apps repositories...")
     nuttx_dir = "nuttx"
@@ -97,7 +137,21 @@ def install():
 @click.argument("board", nargs=1, required=True)
 @click.argument("defconfig", nargs=1, required=True)
 def start(apps_dir, nuttx_dir, store_nxtmpdir, board, defconfig):
-    """Initialize and validate NuttX environment"""
+    """Initialize and validate NuttX environment.
+
+    Sets up the NuttX build environment for a specific board and
+    defconfig. This command validates the environment, runs the
+    configure script, and saves the environment state.
+
+    Args:
+        apps_dir: Name of the NuttX apps directory. Defaults to "nuttx-apps".
+        nuttx_dir: Name of the NuttX OS directory. Defaults to "nuttx".
+        store_nxtmpdir: If True, use nxtmpdir on nuttxspace. Defaults to False.
+        board: The board name (e.g., "stm32f4discovery").
+        defconfig: The defconfig name (e.g., "nsh").
+
+    Exits with code 0 on success, or the setup exit code on failure.
+    """
     current_dir = Path.cwd()
     click.secho("  📦 Board: ", fg="cyan", nl=False)
     click.secho(f"{board}", bold=True)
@@ -139,7 +193,26 @@ def start(apps_dir, nuttx_dir, store_nxtmpdir, board, defconfig):
 @click.option("--merge", "-m", help="Merge Kconfig file", is_flag=True)
 @click.argument("value", nargs=1, required=False)
 def kconfig(read, set_value, set_str, apply, value, merge):
-    """Read Kconfig file"""
+    """Manage Kconfig options.
+
+    Provides commands to read, set, and manage Kconfig configuration
+    options. Only one action can be performed at a time.
+
+    Args:
+        read: Path to the Kconfig option to read (use with --read/-r).
+        set_value: Name of the Kconfig option to set a numerical value
+            (use with --set-value). Requires value argument.
+        set_str: Name of the Kconfig option to set a string value
+            (use with --set-str). Requires value argument.
+        apply: If True, apply Kconfig changes by running olddefconfig
+            (use with --apply/-a flag).
+        merge: If True, merge a Kconfig file (use with --merge/-m flag).
+            Requires value argument with the source file path.
+        value: Value to set (for --set-value or --set-str) or source
+            file path (for --merge). Defaults to None.
+
+    Exits with code 0 on success, 1 on error.
+    """
     try:
         nuttxspace_path, nuttx_dir, _ = prepare_env()
         config_manager = ConfigManager(nuttxspace_path, nuttx_dir)
@@ -173,7 +246,18 @@ def kconfig(read, set_value, set_str, apply, value, merge):
     "--parallel", "-j", required=False, type=int, help="Number of parallel jobs"
 )
 def build(parallel):
-    """Build NuttX project"""
+    """Build NuttX project.
+
+    Compiles the NuttX project using the configured board and defconfig.
+    Can optionally specify the number of parallel build jobs.
+
+    Args:
+        parallel: Number of parallel jobs to use for building.
+            If None, uses default make parallelism. Defaults to None.
+
+    Exits with code 0 on success, 1 on error, or the build exit code
+    on build failure.
+    """
     try:
         nuttxspace_path, nuttx_dir, apps_dir = prepare_env()
         builder = NuttXBuilder(nuttxspace_path, nuttx_dir, apps_dir)
@@ -186,7 +270,13 @@ def build(parallel):
 
 @main.command()
 def distclean():
-    """Clean build artifacts"""
+    """Perform a distclean and reset NuttX environment.
+
+    Removes all generated files including configuration files, and
+    clears the saved environment state (.ntxenv file).
+
+    Exits with code 0 on success.
+    """
     click.echo("🧹 Resetting NuttX environment...")
     current_dir, nuttx_dir, apps_dir = prepare_env()
     builder = NuttXBuilder(current_dir, nuttx_dir, apps_dir)
@@ -197,7 +287,13 @@ def distclean():
 
 @main.command()
 def clean():
-    """Clean build artifacts"""
+    """Clean build artifacts.
+
+    Removes object files and other build artifacts, but preserves
+    configuration files.
+
+    Exits with code 0 on success, 1 on error.
+    """
     try:
         click.echo("🧹 Cleaning build artifacts...")
         nuttxspace_path, nuttx_dir, apps_dir = prepare_env()
@@ -212,8 +308,19 @@ def clean():
 @main.command()
 @click.argument("command", nargs=1, required=True)
 def make(command):
-    """Passes make commands to NuttX build system.
-    Can be used to run any make command.
+    """Pass make commands to NuttX build system.
+
+    Executes any make command in the NuttX directory. This allows
+    running arbitrary make targets that are not directly exposed
+    as separate commands.
+
+    Args:
+        command: The make command to run. Can be any make target,
+            such as "all", "clean", "distclean", "menuconfig", etc.
+            Multiple arguments can be space-separated.
+
+    Exits with code 0 on success, 1 on error, or the make command's
+    exit code on failure.
     """
     try:
         click.echo(f"🧹 Running make {command}")
@@ -229,7 +336,17 @@ def make(command):
 @main.command()
 @click.option("--menuconfig", "-m", help="Run menuconfig", is_flag=True)
 def menuconfig(menuconfig):
-    """Run menuconfig"""
+    """Run the interactive menuconfig interface.
+
+    Opens the curses-based menu configuration interface for interactive
+    Kconfig editing.
+
+    Args:
+        menuconfig: If True, run menuconfig (use with --menuconfig/-m flag).
+            Defaults to False.
+
+    Exits with code 0 on success, 1 on error.
+    """
     try:
         nuttxspace_path, nuttx_dir, apps_dir = prepare_env()
         builder = NuttXBuilder(nuttxspace_path, nuttx_dir, apps_dir)
@@ -241,10 +358,23 @@ def menuconfig(menuconfig):
 
 
 @main.command()
-@click.option("--binary", "-b", help="Run menuconfig", is_flag=True)
+@click.option("--binary", "-b", help="Show binary information", is_flag=True)
 @click.argument("binary_name", nargs=1, required=False, default="nuttx.bin")
 def info(binary, binary_name):
-    """Show build information"""
+    """Show build information.
+
+    Displays information about the NuttX build environment, including
+    paths to the NuttX and Apps directories. Optionally displays
+    binary file information if --binary flag is used.
+
+    Args:
+        binary: If True, display binary file information
+            (use with --binary/-b flag). Defaults to False.
+        binary_name: Path to the binary file relative to nuttx directory.
+            Only used when --binary flag is set. Defaults to "nuttx.bin".
+
+    Exits with code 0 on success, 1 on error.
+    """
     try:
         nuttxspace_path, nuttx_dir, apps_dir = prepare_env()
         click.echo(f"NuttX root found at: {nuttxspace_path}")

@@ -1,5 +1,8 @@
 """
 Utility functions for NuttX builds.
+
+This module provides utility functions for running commands, managing
+build artifacts, and handling NuttX workspace operations.
 """
 
 import logging
@@ -25,8 +28,24 @@ def run_bash_script(
     cwd: Optional[str] = None,
     no_stdout: bool = False,
     no_stderr: bool = False,
-) -> int:
-    """Run a bash script using subprocess.call and return exit code."""
+) -> subprocess.CompletedProcess:
+    """Run a bash script using subprocess.call and return exit code.
+
+    Executes a bash script with optional arguments. Output can be
+    suppressed for stdout and/or stderr.
+
+    Args:
+        script_path: Path to the bash script to execute.
+        args: List of additional arguments to pass to the script.
+            Defaults to None.
+        cwd: Working directory for the script execution.
+            Defaults to None (current directory).
+        no_stdout: If True, suppress stdout output. Defaults to False.
+        no_stderr: If True, suppress stderr output. Defaults to False.
+
+    Returns:
+        subprocess.CompletedProcess: The result of the command execution.
+    """
     try:
         cmd = [script_path]
         if args:
@@ -53,7 +72,23 @@ def run_bash_script(
 def run_kconfig_command(
     cmd: List[str], cwd: Optional[str] = None
 ) -> subprocess.CompletedProcess:
-    """Run a kconfig-tweak command and return CompletedProcess object."""
+    """Run a kconfig-tweak command and return CompletedProcess object.
+
+    Executes a kconfig-tweak command with captured output. Raises an
+    exception if the command fails.
+
+    Args:
+        cmd: Command to run as a list of strings (e.g.,
+        ["kconfig-tweak", "--enable", "CONFIG_FOO"]).
+        cwd: Working directory for the command. Defaults to None (current directory).
+
+    Returns:
+        subprocess.CompletedProcess: The result of the command execution
+            with captured stdout and stderr.
+
+    Raises:
+        subprocess.CalledProcessError: If the command returns a non-zero exit code.
+    """
     logger.debug(f"Running kconfig command: {' '.join(cmd)} in cwd={cwd}")
     try:
         result = subprocess.run(
@@ -74,7 +109,24 @@ def run_make_command(
     no_stdout: bool = False,
     no_stderr: bool = False,
 ) -> subprocess.CompletedProcess:
-    """Run a make command with real-time output using Popen."""
+    """Run a make command with real-time output using Popen.
+
+    Executes a make command and displays output in real-time, preserving
+    control characters for proper terminal formatting. Uses subprocess.Popen
+    to stream output as it becomes available.
+
+    Args:
+        cmd: Command to run as a list of strings (e.g., ["make", "all"]).
+        cwd: Working directory for the command. Defaults to None (current directory).
+        no_stdout: If True, suppress stdout output. Defaults to False.
+        no_stderr: If True, suppress stderr output. Defaults to False.
+
+    Returns:
+        subprocess.Popen: The process object with returncode attribute.
+            Check returncode to determine success (0) or failure (non-zero).
+            Note: In case of exception, may return an Exception object instead
+            of a process (this is a known issue).
+    """
     logger.debug(f"Running make command: {' '.join(cmd)} in cwd={cwd}")
 
     try:
@@ -151,7 +203,7 @@ def run_make_command(
 
     except Exception as e:
         logger.error(f"Make command failed: {' '.join(cmd)}, error: {e}")
-        return e
+        return e  # Fix: verify if this return makes sense
 
 
 def run_curses_command(
@@ -160,14 +212,18 @@ def run_curses_command(
     """Run a curses-based program with proper terminal handling.
 
     This function is designed for interactive curses programs like menuconfig,
-    vim, nano, etc. that require a proper terminal interface.
+    vim, nano, etc. that require a proper terminal interface. The command
+    runs directly without pipes to preserve the terminal interface.
 
     Args:
-        cmd: Command to run as a list of strings
-        cwd: Working directory for the command
+        cmd: Command to run as a list of strings (e.g., ["make", "menuconfig"]).
+        cwd: Working directory for the command. Defaults to None (current directory).
 
     Returns:
-        Exit code of the command
+        subprocess.CompletedProcess: The result of the command execution.
+            Check the returncode attribute to determine success (0) or failure.
+            Note: In case of exception, returns an integer (1) instead of
+            a CompletedProcess object.
     """
     logger.debug(f"Running curses command: {' '.join(cmd)} in cwd={cwd}")
 
@@ -189,7 +245,24 @@ def run_curses_command(
 
 
 def find_nuttx_root(start_path: Path, nuttx_name: str, apps_name: str) -> Optional[str]:
-    """Find the NuttX root directory."""
+    """Find the NuttX root directory.
+
+    Searches upward from the start path to find a directory containing
+    both the NuttX OS directory and the NuttX Apps directory.
+
+    Args:
+        start_path: Path to start searching from (searches upward).
+        nuttx_name: Name of the NuttX OS directory (e.g., "nuttx").
+        apps_name: Name of the NuttX Apps directory (e.g., "nuttx-apps").
+
+    Returns:
+        Optional[str]: Path to the NuttX workspace root directory if found,
+            None otherwise. Actually returns a Path object converted to string.
+
+    Raises:
+        FileNotFoundError: If the NuttX workspace is not found in the
+            directory tree above the start path.
+    """
     logger.debug(
         f"Search NuttX root dir in {start_path} for {nuttx_name} and {apps_name}"
     )
@@ -209,7 +282,19 @@ def find_nuttx_root(start_path: Path, nuttx_name: str, apps_name: str) -> Option
 
 
 def get_build_artifacts(build_dir: str) -> List[str]:
-    """Get list of build artifacts."""
+    """Get list of build artifacts.
+
+    Recursively searches a build directory for common build artifact
+    file types (.o, .a, .elf, .bin, .hex).
+
+    Args:
+        build_dir: Path to the build directory to search.
+
+    Returns:
+        List[str]: List of paths to build artifact files found in the
+            directory tree. Returns empty list if directory doesn't exist
+            or contains no matching files.
+    """
     artifacts = []
     build_path = Path(build_dir)
 
@@ -224,16 +309,24 @@ def get_build_artifacts(build_dir: str) -> List[str]:
 def copy_nuttxspace_to_tmp(
     nuttxspace_path: str, num_copies: int, target_dir: str = "/tmp"
 ) -> List[str]:
-    """Copy nuttxspace to target directory for parallel builds, excluding
-    unnecessary files.
+    """Copy nuttxspace to target directory for parallel builds.
+
+    Creates lightweight copies of the nuttxspace directory, excluding
+    unnecessary files like .git directories, .vscode, and other hidden
+    files (except .ntxenv and .config). Useful for parallel build testing.
 
     Args:
-        nuttxspace_path: Path to the original nuttxspace directory
-        num_copies: Number of copies to create
-        target_dir: Target directory for copies (default: /tmp)
+        nuttxspace_path: Path to the original nuttxspace directory.
+        num_copies: Number of copies to create.
+        target_dir: Target directory for copies. Defaults to "/tmp".
 
     Returns:
-        List of paths to the copied directories in target directory
+        List[str]: List of paths to the copied directories in the target
+            directory. Each copy is created in a unique temporary directory.
+
+    Raises:
+        FileNotFoundError: If the nuttxspace_path does not exist.
+        OSError: If copying fails or target directory cannot be created.
     """
     logger.debug(
         f"Copying nuttxspace {nuttxspace_path} to {target_dir} for {num_copies} "
@@ -315,8 +408,12 @@ def copy_nuttxspace_to_tmp(
 def cleanup_tmp_copies(copied_paths: List[str]) -> None:
     """Clean up temporary copies of nuttxspace.
 
+    Removes temporary directories created by copy_nuttxspace_to_tmp.
+    This operation is safe and will log warnings for any paths that
+    cannot be removed, but will not raise exceptions.
+
     Args:
-        copied_paths: List of paths to temporary directories to remove
+        copied_paths: List of paths to temporary directories to remove.
     """
     logger.debug(f"Cleaning up {len(copied_paths)} temporary copies")
 
