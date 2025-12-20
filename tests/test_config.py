@@ -48,11 +48,8 @@ def test_config_read_write_str(config, nuttxspace_path):
     config_manager.kconfig_apply_changes()
     new_val = config_manager.kconfig_read(config)
 
-    initial_val_str = initial_val.stdout.strip()
-    new_val_str = new_val.stdout.strip()
-
-    assert new_val_str == TEST_STR_VALUE
-    assert new_val_str != initial_val_str
+    assert new_val == TEST_STR_VALUE
+    assert new_val != initial_val
 
 
 @pytest.mark.usefixtures("setup_board_sim_environment")
@@ -60,31 +57,27 @@ def test_config_read_write_str(config, nuttxspace_path):
 def test_config_read_write_bool(config, nuttxspace_path):
     config_manager = ConfigManager(nuttxspace_path, "nuttx")
     initial_val = config_manager.kconfig_read(config)
-    init_val_str = initial_val.stdout.strip()
-    if init_val_str == "y":
+    if initial_val == "y":
         config_manager.kconfig_disable(config)
     else:
         config_manager.kconfig_enable(config)
     config_manager.kconfig_apply_changes()
     new_val = config_manager.kconfig_read(config)
-    new_val_str = new_val.stdout.strip()
 
     assert new_val != initial_val
-    assert new_val_str in ("y", "n")
+    assert new_val in ("y", "n")
 
 
 @pytest.mark.parametrize("config", NUM_CONFIGS)
 def test_config_read_write_num(config, nuttxspace_path):
     config_manager = ConfigManager(nuttxspace_path, "nuttx")
     initial_val = config_manager.kconfig_read(config)
-    initial_val_str = initial_val.stdout.strip()
     config_manager.kconfig_set_value(config, str(TEST_NUM_VALUE))
     config_manager.kconfig_apply_changes()
     new_val = config_manager.kconfig_read(config)
-    new_val_str = new_val.stdout.strip()
 
-    assert new_val_str == str(TEST_NUM_VALUE)
-    assert new_val_str != initial_val_str
+    assert new_val == str(TEST_NUM_VALUE)
+    assert new_val != initial_val
 
 
 def test_read_write_invalid_num(nuttxspace_path):
@@ -103,8 +96,8 @@ def test_merge_config(nuttxspace_path):
     config_manager.kconfig_apply_changes()
 
     value = config_manager.kconfig_read("CONFIG_NSH_SYSINITSCRIPT")
-    assert value.stdout.strip() == "test_value"
+    assert value == "test_value"
     value = config_manager.kconfig_read("CONFIG_SYSTEM_DD")
-    assert value.stdout.strip() == "n"
+    assert value == "n"
     value = config_manager.kconfig_read("CONFIG_DEV_GPIO_NSIGNALS")
-    assert value.stdout.strip() == "2"
+    assert value == "2"

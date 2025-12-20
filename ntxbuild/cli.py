@@ -178,7 +178,7 @@ def build(parallel):
         nuttxspace_path, nuttx_dir, apps_dir = prepare_env()
         builder = NuttXBuilder(nuttxspace_path, nuttx_dir, apps_dir)
         result = builder.build(parallel)
-        sys.exit(result)
+        sys.exit(result.returncode)
     except click.ClickException as e:
         click.echo(f"❌ {e}")
         sys.exit(1)
@@ -219,8 +219,8 @@ def make(command):
         click.echo(f"🧹 Running make {command}")
         nuttxspace_path, nuttx_dir, apps_dir = prepare_env()
         builder = NuttXBuilder(nuttxspace_path, nuttx_dir, apps_dir)
-        builder.make(command)
-        sys.exit(0)
+        result = builder.make(command)
+        sys.exit(result.returncode)
     except click.ClickException as e:
         click.echo(f"❌ {e}")
         sys.exit(1)

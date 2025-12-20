@@ -18,7 +18,7 @@ def download_nuttx_repo(
     depth: int = 1,
     single_branch: bool = True,
     branch_name: str = "master",
-):
+) -> None:
     """Download NuttX repository to current directory if no path destination
     path is provided.
     """
@@ -46,7 +46,7 @@ def download_nuttx_apps_repo(
     depth: int = 1,
     single_branch: bool = True,
     branch_name: str = "master",
-):
+) -> None:
     """Download NuttX Apps repository to current directory if no destination
     path is provided.
     """

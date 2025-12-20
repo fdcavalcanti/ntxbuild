@@ -68,7 +68,7 @@ class NuttXBuilder:
         self.no_stdout = False
         self.no_stderr = False
 
-    def make(self, command: str):
+    def make(self, command: str) -> subprocess.CompletedProcess:
         """Run make command."""
         logger.info(f"Running make command: {command}")
         cmd_list = [BuilderAction.MAKE] + command.split()
@@ -79,7 +79,7 @@ class NuttXBuilder:
             no_stderr=self.no_stderr,
         )
 
-    def build(self, parallel: int = None):
+    def build(self, parallel: int = None) -> subprocess.CompletedProcess:
         """Build the NuttX project."""
         logger.info(f"Starting build with parallel={parallel}")
         if parallel:
@@ -94,20 +94,20 @@ class NuttXBuilder:
             no_stderr=self.no_stderr,
         )
 
-    def distclean(self):
+    def distclean(self) -> subprocess.CompletedProcess:
         """Distclean the NuttX project."""
         logger.info("Running distclean")
-        utils.run_make_command(
+        return utils.run_make_command(
             [BuilderAction.MAKE, MakeAction.DISTCLEAN],
             cwd=self.nuttx_path.absolute(),
             no_stdout=self.no_stdout,
             no_stderr=self.no_stderr,
         )
 
-    def clean(self):
+    def clean(self) -> subprocess.CompletedProcess:
         """Clean build artifacts."""
         logger.info("Running clean")
-        utils.run_make_command(
+        return utils.run_make_command(
             [BuilderAction.MAKE, MakeAction.CLEAN],
             cwd=self.nuttx_path.absolute(),
             no_stdout=self.no_stdout,
@@ -208,14 +208,14 @@ class NuttXBuilder:
             logger.error(f"Setup failed with error: {e}", exc_info=True)
             return 1
 
-    def run_menuconfig(self):
+    def run_menuconfig(self) -> subprocess.CompletedProcess:
         """Run menuconfig"""
         logger.info("Running menuconfig")
-        utils.run_curses_command(
+        return utils.run_curses_command(
             [BuilderAction.MAKE, MakeAction.MENUCONFIG], cwd=self.nuttx_path
         )
 
-    def print_binary_info(self, binary_path: str = "nuttx.bin"):
+    def print_binary_info(self, binary_path: str = "nuttx.bin") -> None:
         """Print binary information including file size and architecture.
 
         Args:
@@ -262,7 +262,7 @@ class NuttXBuilder:
             logger.error(f"Error getting binary information: {e}")
             print(f"Error: {e}")
 
-    def _print_formatted_file_info(self, file_info: str):
+    def _print_formatted_file_info(self, file_info: str) -> None:
         """Parse and format file command output into readable lines.
 
         Args:
