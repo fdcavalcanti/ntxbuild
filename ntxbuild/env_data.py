@@ -8,16 +8,24 @@ logger = logging.getLogger("ntxbuild.env_data")
 
 
 def get_env_file_path() -> Path:
-    """Get the path to the .ntxenv file in the current or target directory."""
+    """Get the path to the .ntxenv file in the current working directory.
+
+    Returns:
+        Path: Path to the .ntxenv file in the current working directory.
+    """
     return Path.cwd() / ".ntxenv"
 
 
 def save_ntx_env(nuttxspace_folder: str, nuttx_folder: str, apps_folder: str) -> None:
     """Save NuttX environment configuration to .ntxenv file.
 
+    Saves the NuttX workspace, OS directory, and apps directory paths
+    to a shelve database file (.ntxenv) in the current working directory.
+
     Args:
-        nuttx_folder: Name of the NuttX folder
-        apps_folder: Name of the apps folder
+        nuttxspace_folder: Path to the NuttX workspace directory.
+        nuttx_folder: Name of the NuttX OS directory.
+        apps_folder: Name of the NuttX apps directory.
     """
     env_file = get_env_file_path()
 
@@ -30,8 +38,16 @@ def save_ntx_env(nuttxspace_folder: str, nuttx_folder: str, apps_folder: str) ->
 def load_ntx_env() -> Optional[Tuple[str, str, str]]:
     """Load NuttX environment configuration from .ntxenv file.
 
+    Loads the saved NuttX environment configuration from the .ntxenv
+    shelve database file in the current working directory.
+
     Returns:
-        Tuple of (nuttx_folder, apps_folder) if found, None otherwise
+        Optional[Tuple[str, str, str]]: A tuple containing:
+            - Path to the NuttX workspace directory
+            - Name of the NuttX OS directory
+            - Name of the NuttX apps directory
+            - Or, returns None if the file doesn't exist, is invalid, or
+              contains incomplete data.
     """
     env_file = get_env_file_path()
 
@@ -52,7 +68,12 @@ def load_ntx_env() -> Optional[Tuple[str, str, str]]:
 
 
 def clear_ntx_env() -> None:
-    """Clear the NuttX environment configuration file."""
+    """Clear the NuttX environment configuration file.
+
+    Deletes the .ntxenv file from the current working directory if it
+    exists. This operation is safe and will not raise an exception if
+    the file doesn't exist.
+    """
     env_file = get_env_file_path()
     logger.debug(f"Clearing NuttX environment configuration file: {env_file}")
     if env_file.exists():
@@ -65,7 +86,13 @@ def clear_ntx_env() -> None:
 def has_ntx_env() -> bool:
     """Check if .ntxenv file exists and contains valid configuration.
 
+    Verifies that the .ntxenv file exists and can be successfully loaded
+    with all required configuration values (workspace, NuttX directory,
+    and apps directory).
+
     Returns:
-        True if valid configuration exists, False otherwise
+        bool: True if valid configuration exists, False otherwise.
+            Returns False if the file doesn't exist, is corrupted, or
+            contains incomplete data.
     """
     return load_ntx_env() is not None

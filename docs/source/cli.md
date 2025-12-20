@@ -1,6 +1,6 @@
 # Command Line Usage
 
-## start
+## `start`
 Initializes NuttX environment on current directory.
 `nuttx-apps` and `nuttx` directories must be present or a custom path can be
 passed using the options.
