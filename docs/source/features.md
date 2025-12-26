@@ -35,6 +35,10 @@ Menuconfig works just as usual through this tool.
 
 ## To-Do
 
+```{note}
+Active feature tracking and new feature requests are now handled on the [project board](https://github.com/users/fdcavalcanti/projects/5).
+```
+
 The following are features that should be added to this project:
 
 1. (OK) Publish on PyPi

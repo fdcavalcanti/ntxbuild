@@ -27,3 +27,8 @@ exclude_patterns = []
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = "sphinx_rtd_theme"
+html_theme_options = {
+    "collapse_navigation": True,
+    "navigation_depth": 4,
+    "titles_only": False,
+}

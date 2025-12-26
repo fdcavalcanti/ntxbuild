@@ -16,7 +16,7 @@ from ntxbuild.build import NuttXBuilder
 
 current_dir = Path.cwd()
 
-builder = NuttXBuilder(current_dir, "nuttx-apps")
+builder = NuttXBuilder(current_dir, "nuttx", "nuttx-apps")
 setup_result = builder.setup_nuttx("sim", "nsh")
 
 # Execute the build with 10 parallel jobs
@@ -36,7 +36,7 @@ from ntxbuild.config import ConfigManager
 
 current_dir = Path.cwd()
 
-builder = NuttXBuilder(current_dir, "nuttx-apps")
+builder = NuttXBuilder(current_dir, "nuttx", "nuttx-apps")
 setup_result = builder.setup_nuttx("sim", "nsh")
 
 config = ConfigManager(current_dir)
