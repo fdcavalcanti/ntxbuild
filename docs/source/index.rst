@@ -16,12 +16,11 @@ while also providing a Python API that allows you to script your builds.
 
 .. toctree::
    :maxdepth: 2
-   :titlesonly:
-   :caption: Contents:
+   :caption: Contents
 
    quick_start
    features
-   cli
    api_examples
    ntxbuild
+   cli
    how_it_works

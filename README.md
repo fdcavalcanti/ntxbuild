@@ -90,26 +90,6 @@ ntxbuild kconfig --set-value CONFIG_DEBUG=y
 ntxbuild kconfig --set-str CONFIG_APP_NAME="MyApp"
 ```
 
-## 🏗️ Project Structure
-
-```
-your-nuttx-workspace/
-├── nuttx/                   # NuttX kernel source
-├── nuttx-apps/              # NuttX applications
-├── .ntxenv                  # Environment configuration (auto-generated)
-```
-
-## 🔧 Environment Configuration
-
-The `.ntxenv` file stores your workspace configuration:
-
-- **NuttX directory name**
-- **Apps directory name**
-- **Workspace path**
-
-This allows ntxbuild to remember your setup between sessions.
-
-
 ## Contributing
 Contributions are always welcome but will be subject to review and approval.
 Basic rules:
