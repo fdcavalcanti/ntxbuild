@@ -7,7 +7,7 @@ import subprocess
 
 import pytest
 
-from ntxbuild.build import NuttXBuilder
+from ntxbuild.build import nuttx_builder
 
 CONFIG_BOARD = "sim"
 CONFIG_DEFCONFIG = "nsh"
@@ -17,7 +17,7 @@ PARALLEL_NPROCS = 4
 
 @pytest.fixture(scope="module", autouse=True)
 def builder(nuttxspace_path):
-    builder = NuttXBuilder(nuttxspace_path, "nuttx", "nuttx-apps")
+    builder = nuttx_builder(nuttxspace_path, "nuttx", "nuttx-apps")
     yield builder
     builder.distclean()
 
@@ -37,24 +37,12 @@ def test_builder_methods(builder):
     assert hasattr(builder, "build")
     assert hasattr(builder, "clean")
     assert hasattr(builder, "distclean")
-    assert hasattr(builder, "validate_nuttx_environment")
-    assert hasattr(builder, "setup_nuttx")
+    assert hasattr(builder, "initialize")
 
     # Test that methods are callable
     assert callable(builder.build)
     assert callable(builder.clean)
     assert callable(builder.distclean)
-
-
-def test_environment_validation(builder):
-    """Test that environment validation works with the test workspace."""
-
-    # Test validation
-    is_valid, error_msg = builder.validate_nuttx_environment()
-
-    # Should be valid since we have the test workspace
-    assert is_valid is True
-    assert error_msg == ""
 
 
 def test_setup_nuttx(builder):
@@ -67,7 +55,7 @@ def test_setup_nuttx(builder):
         text=True,
     )
     builder.distclean()
-    ans = builder.setup_nuttx(CONFIG_BOARD, CONFIG_DEFCONFIG)
+    ans = builder.initialize(CONFIG_BOARD, CONFIG_DEFCONFIG)
     assert ans == 0
 
 
@@ -162,23 +150,22 @@ def test_invalid_nuttx_environment(tmp_path):
     nuttx_dir = tmp_path / "nuttx"
     nuttx_dir.mkdir()
 
-    bad_builder = NuttXBuilder(tmp_path, "nuttx", "nuttx-apps")
-    ans = bad_builder.setup_nuttx(CONFIG_BOARD, CONFIG_DEFCONFIG)
-    assert ans != 0
+    with pytest.raises(FileNotFoundError):
+        nuttx_builder(tmp_path, "nuttx", "nuttx-apps")
 
     # Create a dummy Makefile
     makefile = nuttx_dir / "Makefile"
     makefile.write_text("CONTENT")
 
-    ans = bad_builder.setup_nuttx(CONFIG_BOARD, CONFIG_DEFCONFIG)
-    assert ans != 0
+    with pytest.raises(FileNotFoundError):
+        nuttx_builder(tmp_path, "nuttx", "nuttx-apps")
 
     # Create a dummy INVIOLABLES.md
     inviolables = nuttx_dir / "INVIOLABLES.md"
     inviolables.write_text("CONTENT")
 
-    ans = bad_builder.setup_nuttx(CONFIG_BOARD, CONFIG_DEFCONFIG)
-    assert ans != 0
+    with pytest.raises(FileNotFoundError):
+        nuttx_builder(tmp_path, "nuttx", "nuttx-apps")
 
 
 def test_invalid_apps_environment(tmp_path):
@@ -189,7 +176,8 @@ def test_invalid_apps_environment(tmp_path):
     apps_dir = tmp_path / "nuttx-apps"
     nuttx_dir.mkdir()
 
-    bad_builder = NuttXBuilder(tmp_path, "nuttx", "nuttx-apps")
+    with pytest.raises(FileNotFoundError):
+        nuttx_builder(tmp_path, "nuttx", "nuttx-apps")
 
     makefile = nuttx_dir / "Makefile"
     makefile.write_text("CONTENT")
@@ -197,17 +185,18 @@ def test_invalid_apps_environment(tmp_path):
     inviolables.write_text("CONTENT")
 
     # Apps directory does not exist
-    status, _ = bad_builder.validate_nuttx_environment()
-    assert status is False
+    with pytest.raises(FileNotFoundError):
+        nuttx_builder(tmp_path, "nuttx", "nuttx-apps")
 
     apps_dir.mkdir()
 
     # Make.defs does not exist
-    status, _ = bad_builder.validate_nuttx_environment()
-    assert status is False
+    with pytest.raises(FileNotFoundError):
+        nuttx_builder(tmp_path, "nuttx", "nuttx-apps")
 
     # Make.defs exists
     make_defs = apps_dir / "Make.defs"
     make_defs.write_text("CONTENT")
-    status, _ = bad_builder.validate_nuttx_environment()
-    assert status is True
+
+    builder = nuttx_builder(tmp_path, "nuttx", "nuttx-apps")
+    assert builder is not None

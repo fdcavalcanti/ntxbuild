@@ -2,7 +2,6 @@ import configparser
 import logging
 import os
 from pathlib import Path
-from typing import Dict, Optional
 
 # Get logger for this module
 logger = logging.getLogger("ntxbuild.env_data")
@@ -35,7 +34,7 @@ def save_ntx_env(
         logger.exception("Failed to write environment file: %s", env_file)
 
 
-def load_ntx_env(nuttxspace_path: Path) -> Optional[Dict[str, object]]:
+def load_ntx_env(nuttxspace_path: Path) -> configparser.ConfigParser:
     """Load environment configuration from the INI file and return a dict.
 
     Args:
@@ -63,32 +62,23 @@ def load_ntx_env(nuttxspace_path: Path) -> Optional[Dict[str, object]]:
         raise RuntimeError(f"Failed to read environment file: {env_file}")
 
     if "general" not in config:
-        return None
+        raise RuntimeError(f"Missing 'general' section in environment file: {env_file}")
 
     section = config["general"]
-    try:
-        nuttxspace = section.get("nuttxspace_path")
-        nuttx_dir = section.get("nuttx_dir")
-        apps_dir = section.get("apps_dir")
-        build_tool = section.get("build_tool", "make")
 
-        if not (nuttxspace and nuttx_dir and apps_dir):
-            return None
+    nuttxspace = section.get("nuttxspace_path")
+    nuttx_dir = section.get("nuttx_dir")
+    apps_dir = section.get("apps_dir")
 
-        return {
-            "nuttxspace_path": Path(nuttxspace),
-            "nuttx_dir": nuttx_dir,
-            "apps_dir": apps_dir,
-            "build_tool": build_tool,
-        }
-    except Exception:
-        logger.exception("Invalid environment file format: %s", env_file)
-        return None
+    if not (nuttxspace and nuttx_dir and apps_dir):
+        raise RuntimeError(f"Missing required sections in environment file: {env_file}")
+
+    return config
 
 
 def clear_ntx_env(nuttxspace_path: Path) -> None:
     """Remove the environment INI file if it exists."""
-    env_file = nuttxspace_path / ".ntxenv"
+    env_file = Path(nuttxspace_path) / ".ntxenv"
     logger.debug("Clearing NuttX environment configuration file: %s", env_file)
     try:
         if env_file.exists():

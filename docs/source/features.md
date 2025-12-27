@@ -7,6 +7,14 @@
 - Menuconfig available and also kconfig options modification directly from command line
 - Full Python API support
 
+## CMake Support
+The use of Makefile is the default state of `ntxbuild`. To build using CMake, pass
+`--use-cmake` to the `ntxbuild start` command. This will setup the directory to CMake
+and Ninja generator.
+
+Currently, CMake support uses the `build` directory for output and Ninja generator when invoked
+from the CLI. Using the Python API allows more flexibility.
+
 ## Real-time Build Output
 When building directly from NuttX, the user can see build output in real-time.
 This tool keeps the output the same, as the user will see the logging output
@@ -42,7 +50,7 @@ Active feature tracking and new feature requests are now handled on the [project
 The following are features that should be added to this project:
 
 1. (OK) Publish on PyPi
-2. Add build using CMake
+2. (OK) Add build using CMake
 3. Checkpatch script support
 4. Download and install compilers
 5. Open the docs for a board

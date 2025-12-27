@@ -2,17 +2,18 @@
 Command-line interface for ntxbuild.
 """
 
+import configparser
 import logging
 import sys
 from pathlib import Path
 
 import click
 
-from .build import NuttXBuilder
+from .build import BuildTool, nuttx_builder
 from .config import ConfigManager
 from .env_data import clear_ntx_env, load_ntx_env, save_ntx_env
 from .setup import download_nuttx_apps_repo, download_nuttx_repo
-from .utils import find_nuttx_root
+from .utils import NUTTX_APPS_DEFAULT_DIR_NAME, NUTTX_DEFAULT_DIR_NAME, find_nuttx_root
 
 logger = logging.getLogger("ntxbuild.cli")
 
@@ -21,8 +22,8 @@ def prepare_env(
     nuttx_dir: str = None,
     apps_dir: str = None,
     start: bool = False,
-    build_tool: str = "make",
-) -> tuple[Path, str, str]:
+    build_tool: BuildTool = BuildTool.MAKE,
+) -> configparser.SectionProxy:
     """Prepare and validate the NuttX environment.
 
     Loads the environment from .ntxenv file if it exists, or initializes
@@ -36,12 +37,14 @@ def prepare_env(
         apps_dir: Name of the NuttX apps directory. Defaults to None.
         start: If True, allows initializing a new environment. If False,
             requires an existing .ntxenv file. Defaults to False.
+        build_tool: Build tool to use (Make or CMake). Defaults to Make.
 
     Returns:
-        tuple[Path, str, str]: A tuple containing:
-            - Path to the NuttX workspace
-            - Name of the NuttX OS directory
-            - Name of the NuttX apps directory
+        configparser.SectionProxy: A configparser section proxy containing:
+            - nuttxspace_path: Path to the NuttX workspace
+            - nuttx_dir: Name of the NuttX OS directory
+            - apps_dir: Name of the NuttX apps directory
+            - build_tool: Build tool to use (Make or CMake)
 
     Raises:
         click.ClickException: If environment validation fails or
@@ -54,7 +57,8 @@ def prepare_env(
         nuttxspace = find_nuttx_root(current_dir, nuttx_dir, apps_dir)
 
         save_ntx_env(nuttxspace, nuttx_dir, apps_dir, build_tool)
-        return nuttxspace, nuttx_dir, apps_dir
+        env = load_ntx_env(nuttxspace)
+        return env["general"]
 
     try:
         env = load_ntx_env(current_dir)
@@ -63,11 +67,16 @@ def prepare_env(
             "No .ntxenv found. Please run 'start' command first."
         )
 
-    nuttxspace = env["nuttxspace_path"]
-    nuttx = env["nuttx_dir"]
-    apps = env["apps_dir"]
+    return env["general"]
 
-    return nuttxspace, nuttx, apps
+
+def get_builder():
+    env = prepare_env()
+    nuttxspace_path = env.get("nuttxspace_path")
+    nuttx_dir = env.get("nuttx_dir")
+    apps_dir = env.get("apps_dir")
+    build_tool = env.get("build_tool")
+    return nuttx_builder(nuttxspace_path, nuttx_dir, apps_dir, build_tool)
 
 
 @click.group()
@@ -123,8 +132,8 @@ def install():
     """
     current_dir = Path.cwd()
     click.echo("🚀 Downloading NuttX and Apps repositories...")
-    nuttx_dir = "nuttx"
-    apps_dir = "nuttx-apps"
+    nuttx_dir = NUTTX_DEFAULT_DIR_NAME
+    apps_dir = NUTTX_APPS_DEFAULT_DIR_NAME
 
     try:
         find_nuttx_root(current_dir, nuttx_dir, apps_dir)
@@ -139,15 +148,21 @@ def install():
 
 
 @main.command()
-@click.option("--apps-dir", "-a", help="Apps directory", default="nuttx-apps")
-@click.option("--nuttx-dir", help="NuttX directory", default="nuttx")
+@click.option(
+    "--apps-dir", "-a", help="Apps directory", default=NUTTX_APPS_DEFAULT_DIR_NAME
+)
+@click.option("--nuttx-dir", help="NuttX directory", default=NUTTX_DEFAULT_DIR_NAME)
 @click.option("--store-nxtmpdir", "-S", is_flag=True, help="Use nxtmpdir on nuttxspace")
 @click.option(
-    "--build-tool", help="Build tool to record (default: make)", default="make"
+    "--use-cmake",
+    "-M",
+    default=False,
+    is_flag=True,
+    help="Use CMake instead of defaulting to Make",
 )
 @click.argument("board", nargs=1, required=True)
 @click.argument("defconfig", nargs=1, required=True)
-def start(apps_dir, nuttx_dir, store_nxtmpdir, build_tool, board, defconfig):
+def start(apps_dir, nuttx_dir, store_nxtmpdir, use_cmake, board, defconfig):
     """Initialize and validate NuttX environment.
 
     Sets up the NuttX build environment for a specific board and
@@ -165,36 +180,43 @@ def start(apps_dir, nuttx_dir, store_nxtmpdir, build_tool, board, defconfig):
     """
     click.secho("  📦 Board: ", fg="cyan", nl=False)
     click.secho(f"{board}", bold=True)
-    click.secho("  ⚙️  Defconfig: ", fg="cyan", nl=False)
+    click.secho("  ⚙️ Defconfig: ", fg="cyan", nl=False)
     click.secho(f"{defconfig}", bold=True)
 
+    build_tool = BuildTool.CMAKE if use_cmake else BuildTool.MAKE
+
     # Check if .ntxenv file exists
-    nuttxspace_path, nuttx_dir, apps_dir = prepare_env(
-        nuttx_dir, apps_dir, True, build_tool
-    )
+    env = prepare_env(nuttx_dir, apps_dir, True, build_tool)
 
     # Run NuttX setup using the builder (includes validation)
     click.echo("\n🔧 Setting up NuttX configuration...")
     click.echo(f"   NuttX directory: {nuttx_dir}")
-    click.echo(f"   Apps directory: {apps_dir}\n")
+    click.echo(f"   Apps directory: {apps_dir}")
 
-    builder = NuttXBuilder(nuttxspace_path, nuttx_dir, apps_dir)
+    click.echo(f"   Build tool: {build_tool}\n")
+
+    builder = nuttx_builder(
+        env.get("nuttxspace_path"),
+        env.get("nuttx_dir"),
+        env.get("apps_dir"),
+        build_tool=env.get("build_tool"),
+    )
 
     extra_args = []
     if store_nxtmpdir:
         extra_args.append("-S")
 
-    setup_result = builder.setup_nuttx(board, defconfig, extra_args)
+    setup_result = builder.initialize(board, defconfig, extra_args)
 
     if setup_result != 0:
         click.echo("❌ Setup failed")
-        clear_ntx_env(nuttxspace_path)
-        return sys.exit(setup_result)
+        clear_ntx_env(env.get("nuttxspace_path"))
+        sys.exit(setup_result)
 
     click.echo("")
     click.echo("✅ Configuration completed successfully")
     click.echo("\n🚀 NuttX environment is ready!")
-    return sys.exit(0)
+    sys.exit(0)
 
 
 @main.command()
@@ -225,9 +247,9 @@ def kconfig(read, set_value, set_str, apply, value, merge):
 
     Exits with code 0 on success, 1 on error.
     """
+    env = prepare_env()
     try:
-        nuttxspace_path, nuttx_dir, _ = prepare_env()
-        config_manager = ConfigManager(nuttxspace_path, nuttx_dir)
+        config_manager = ConfigManager(env.get("nuttxspace_path"), env.get("nuttx_dir"))
         if read:
             config_manager.kconfig_read(read)
         elif set_value:
@@ -271,8 +293,7 @@ def build(parallel):
     on build failure.
     """
     try:
-        nuttxspace_path, nuttx_dir, apps_dir = prepare_env()
-        builder = NuttXBuilder(nuttxspace_path, nuttx_dir, apps_dir)
+        builder = get_builder()
         result = builder.build(parallel)
         sys.exit(result.returncode)
     except click.ClickException as e:
@@ -290,10 +311,9 @@ def distclean():
     Exits with code 0 on success.
     """
     click.echo("🧹 Resetting NuttX environment...")
-    nuttxspace_path, nuttx_dir, apps_dir = prepare_env()
-    builder = NuttXBuilder(nuttxspace_path, nuttx_dir, apps_dir)
+    builder = get_builder()
     builder.distclean()
-    clear_ntx_env(nuttxspace_path)
+    clear_ntx_env(builder.nuttxspace_path)
     sys.exit(0)
 
 
@@ -306,10 +326,9 @@ def clean():
 
     Exits with code 0 on success, 1 on error.
     """
+    click.echo("🧹 Cleaning build artifacts...")
     try:
-        click.echo("🧹 Cleaning build artifacts...")
-        nuttxspace_path, nuttx_dir, apps_dir = prepare_env()
-        builder = NuttXBuilder(nuttxspace_path, nuttx_dir, apps_dir)
+        builder = get_builder()
         builder.clean()
         sys.exit(0)
     except click.ClickException as e:
@@ -317,9 +336,11 @@ def clean():
         sys.exit(1)
 
 
-@main.command()
-@click.argument("command", nargs=1, required=True)
-def make(command):
+@main.command(
+    context_settings={"allow_extra_args": True, "ignore_unknown_options": True}
+)
+@click.pass_context
+def make(ctx):
     """Pass make commands to NuttX build system.
 
     Executes any make command in the NuttX directory. This allows
@@ -334,11 +355,45 @@ def make(command):
     Exits with code 0 on success, 1 on error, or the make command's
     exit code on failure.
     """
+    command = " ".join(tuple(ctx.args))
+    click.echo(f"🧹 Running make {command}")
+    env = prepare_env()
+
+    if env.get("build_tool") == BuildTool.CMAKE:
+        click.echo("❌ Project is configured for CMake. Use 'cmake' command instead.")
+        sys.exit(1)
+
     try:
-        click.echo(f"🧹 Running make {command}")
-        nuttxspace_path, nuttx_dir, apps_dir = prepare_env()
-        builder = NuttXBuilder(nuttxspace_path, nuttx_dir, apps_dir)
+        builder = get_builder()
         result = builder.make(command)
+        sys.exit(result.returncode)
+    except click.ClickException as e:
+        click.echo(f"❌ {e}")
+        sys.exit(1)
+
+
+@main.command(
+    context_settings={"allow_extra_args": True, "ignore_unknown_options": True}
+)
+@click.pass_context
+def cmake(ctx):
+    """Pass cmake commands to NuttX build system.
+
+    Executes any cmake command in the NuttX directory. This allows
+    running arbitrary cmake targets that are not directly exposed
+    as separate commands.
+    """
+    command = " ".join(tuple(ctx.args))
+    click.echo(f"🧹 Running cmake {command}")
+    env = prepare_env()
+
+    if env.get("build_tool") == BuildTool.MAKE:
+        click.echo("❌ Project is configured for Make. Use 'make' command instead.")
+        sys.exit(1)
+
+    try:
+        builder = get_builder()
+        result = builder.cmake(command)
         sys.exit(result.returncode)
     except click.ClickException as e:
         click.echo(f"❌ {e}")
@@ -360,47 +415,12 @@ def menuconfig(menuconfig):
     Exits with code 0 on success, 1 on error.
     """
     try:
-        nuttxspace_path, nuttx_dir, apps_dir = prepare_env()
-        builder = NuttXBuilder(nuttxspace_path, nuttx_dir, apps_dir)
-        builder.run_menuconfig()
+        builder = get_builder()
+        builder.menuconfig()
         sys.exit(0)
     except click.ClickException as e:
         click.echo(f"❌ {e}")
         sys.exit(1)
-
-
-@main.command()
-@click.option("--binary", "-b", help="Show binary information", is_flag=True)
-@click.argument("binary_name", nargs=1, required=False, default="nuttx.bin")
-def info(binary, binary_name):
-    """Show build information.
-
-    Displays information about the NuttX build environment, including
-    paths to the NuttX and Apps directories. Optionally displays
-    binary file information if --binary flag is used.
-
-    Args:
-        binary: If True, display binary file information
-            (use with --binary/-b flag). Defaults to False.
-        binary_name: Path to the binary file relative to nuttx directory.
-            Only used when --binary flag is set. Defaults to "nuttx.bin".
-
-    Exits with code 0 on success, 1 on error.
-    """
-    try:
-        nuttxspace_path, nuttx_dir, apps_dir = prepare_env()
-        click.echo(f"NuttX root found at: {nuttxspace_path}")
-        click.echo(f"NuttX directory: {nuttxspace_path / nuttx_dir}")
-        click.echo(f"Apps directory: {nuttxspace_path / apps_dir}")
-    except click.ClickException as e:
-        click.echo(f"❌ {e}")
-        sys.exit(1)
-
-    if binary:
-        builder = NuttXBuilder(nuttxspace_path, nuttx_dir, apps_dir)
-        builder.print_binary_info(binary_name)
-
-    sys.exit(0)
 
 
 if __name__ == "__main__":
