@@ -57,8 +57,8 @@ class ConfigManager:
             nuttx_dir: Name of the NuttX OS directory within the workspace.
                 Defaults to "nuttx".
         """
-        self.nuttxspace_path = nuttxspace_path
-        self.nuttx_path = nuttxspace_path / nuttx_dir
+        self.nuttxspace_path = Path(nuttxspace_path)
+        self.nuttx_path = self.nuttxspace_path / nuttx_dir
 
     def kconfig_read(self, config: str) -> str:
         """Read the current state of a Kconfig option.

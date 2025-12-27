@@ -127,7 +127,7 @@ def run_make_command(
             Note: In case of exception, may return an Exception object instead
             of a process (this is a known issue).
     """
-    logger.debug(f"Running make command: {' '.join(cmd)} in cwd={cwd}")
+    logger.debug(f"Running make command: {cmd} :: {' '.join(cmd)} in cwd={cwd}")
 
     try:
         # Use Popen for real-time output and binary mode to
@@ -283,6 +283,7 @@ def find_nuttx_root(start_path: Path, nuttx_name: str, apps_name: str) -> Option
         "NuttX workspace not found. "
         "Make sure nuttx and apps directories are present or call "
         "'ntxbuild install' to download."
+        " \nOr, check if --apps-dir and --nuttx-dir are correct."
     )
 
 

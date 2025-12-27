@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from ntxbuild.build import NuttXBuilder
+from ntxbuild.build import nuttx_builder
 from ntxbuild.config import ConfigManager
 
 CONFIG_BOARD = "sim"
@@ -27,9 +27,9 @@ TEST_NUM_VALUE = 50
 
 @pytest.fixture(scope="module", autouse=True)
 def setup_board_sim_environment(nuttxspace_path):
-    builder = NuttXBuilder(nuttxspace_path)
+    builder = nuttx_builder(nuttxspace_path)
     builder.distclean()
-    builder.setup_nuttx(CONFIG_BOARD, CONFIG_DEFCONFIG)
+    builder.initialize(CONFIG_BOARD, CONFIG_DEFCONFIG)
     yield
     builder.distclean()
 
