@@ -10,7 +10,7 @@ import click
 
 from .build import NuttXBuilder
 from .config import ConfigManager
-from .env_data import clear_ntx_env, has_ntx_env, load_ntx_env, save_ntx_env
+from .env_data import clear_ntx_env, load_ntx_env, save_ntx_env
 from .setup import download_nuttx_apps_repo, download_nuttx_repo
 from .utils import find_nuttx_root
 
@@ -18,13 +18,18 @@ logger = logging.getLogger("ntxbuild.cli")
 
 
 def prepare_env(
-    nuttx_dir: str = None, apps_dir: str = None, start: bool = False
+    nuttx_dir: str = None,
+    apps_dir: str = None,
+    start: bool = False,
+    build_tool: str = "make",
 ) -> tuple[Path, str, str]:
     """Prepare and validate the NuttX environment.
 
     Loads the environment from .ntxenv file if it exists, or initializes
     a new environment if start is True. Validates that the current
     directory matches the stored environment.
+
+    Must be executed by CLI commands.
 
     Args:
         nuttx_dir: Name of the NuttX OS directory. Defaults to None.
@@ -43,23 +48,26 @@ def prepare_env(
             .ntxenv is not found when start is False.
     """
     current_dir = Path.cwd()
-    if has_ntx_env():
-        nuttxspace, nuttx, apps = load_ntx_env()
-        if not start:
-            assert current_dir == nuttxspace
-        return nuttxspace, nuttx, apps
-    else:
-        if start:
-            try:
-                find_nuttx_root(current_dir, nuttx_dir, apps_dir)
-            except FileNotFoundError as e:
-                raise click.ClickException(e)
-            save_ntx_env(current_dir, nuttx_dir, apps_dir)
-            return current_dir, nuttx_dir, apps_dir
-        else:
-            raise click.ClickException(
-                "No .ntxenv found. Please run 'start' command first."
-            )
+
+    if start:
+        # This validates the directory structure
+        nuttxspace = find_nuttx_root(current_dir, nuttx_dir, apps_dir)
+
+        save_ntx_env(nuttxspace, nuttx_dir, apps_dir, build_tool)
+        return nuttxspace, nuttx_dir, apps_dir
+
+    try:
+        env = load_ntx_env(current_dir)
+    except FileNotFoundError:
+        raise click.ClickException(
+            "No .ntxenv found. Please run 'start' command first."
+        )
+
+    nuttxspace = env["nuttxspace_path"]
+    nuttx = env["nuttx_dir"]
+    apps = env["apps_dir"]
+
+    return nuttxspace, nuttx, apps
 
 
 @click.group()
@@ -134,9 +142,12 @@ def install():
 @click.option("--apps-dir", "-a", help="Apps directory", default="nuttx-apps")
 @click.option("--nuttx-dir", help="NuttX directory", default="nuttx")
 @click.option("--store-nxtmpdir", "-S", is_flag=True, help="Use nxtmpdir on nuttxspace")
+@click.option(
+    "--build-tool", help="Build tool to record (default: make)", default="make"
+)
 @click.argument("board", nargs=1, required=True)
 @click.argument("defconfig", nargs=1, required=True)
-def start(apps_dir, nuttx_dir, store_nxtmpdir, board, defconfig):
+def start(apps_dir, nuttx_dir, store_nxtmpdir, build_tool, board, defconfig):
     """Initialize and validate NuttX environment.
 
     Sets up the NuttX build environment for a specific board and
@@ -152,21 +163,22 @@ def start(apps_dir, nuttx_dir, store_nxtmpdir, board, defconfig):
 
     Exits with code 0 on success, or the setup exit code on failure.
     """
-    current_dir = Path.cwd()
     click.secho("  📦 Board: ", fg="cyan", nl=False)
     click.secho(f"{board}", bold=True)
     click.secho("  ⚙️  Defconfig: ", fg="cyan", nl=False)
     click.secho(f"{defconfig}", bold=True)
 
     # Check if .ntxenv file exists
-    _, nuttx_dir, apps_dir = prepare_env(nuttx_dir, apps_dir, True)
+    nuttxspace_path, nuttx_dir, apps_dir = prepare_env(
+        nuttx_dir, apps_dir, True, build_tool
+    )
 
     # Run NuttX setup using the builder (includes validation)
     click.echo("\n🔧 Setting up NuttX configuration...")
     click.echo(f"   NuttX directory: {nuttx_dir}")
     click.echo(f"   Apps directory: {apps_dir}\n")
 
-    builder = NuttXBuilder(current_dir, nuttx_dir, apps_dir)
+    builder = NuttXBuilder(nuttxspace_path, nuttx_dir, apps_dir)
 
     extra_args = []
     if store_nxtmpdir:
@@ -176,7 +188,7 @@ def start(apps_dir, nuttx_dir, store_nxtmpdir, board, defconfig):
 
     if setup_result != 0:
         click.echo("❌ Setup failed")
-        clear_ntx_env()
+        clear_ntx_env(nuttxspace_path)
         return sys.exit(setup_result)
 
     click.echo("")
@@ -278,10 +290,10 @@ def distclean():
     Exits with code 0 on success.
     """
     click.echo("🧹 Resetting NuttX environment...")
-    current_dir, nuttx_dir, apps_dir = prepare_env()
-    builder = NuttXBuilder(current_dir, nuttx_dir, apps_dir)
+    nuttxspace_path, nuttx_dir, apps_dir = prepare_env()
+    builder = NuttXBuilder(nuttxspace_path, nuttx_dir, apps_dir)
     builder.distclean()
-    clear_ntx_env()
+    clear_ntx_env(nuttxspace_path)
     sys.exit(0)
 
 

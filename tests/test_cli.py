@@ -17,6 +17,17 @@ def test_start(nuttxspace_path):
     assert result.exit_code == 0
 
 
+def test_start_from_different_directory(nuttxspace_path):
+    os.chdir(nuttxspace_path / "nuttx")
+
+    runner = CliRunner()
+    result = runner.invoke(start, ["sim", "nshhhh"])
+    assert result.exit_code != 0
+
+    result = runner.invoke(start, ["sim", "nsh"])
+    assert result.exit_code == 0
+
+
 def test_build_and_clean(nuttxspace_path):
     os.chdir(nuttxspace_path)
 
