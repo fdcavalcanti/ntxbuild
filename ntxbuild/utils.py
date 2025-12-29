@@ -247,7 +247,7 @@ def run_curses_command(
 def find_nuttx_root(start_path: Path, nuttx_name: str, apps_name: str) -> Optional[str]:
     """Find the NuttX root directory.
 
-    Searches upward from the start path to find a directory containing
+    Searches UPWARD from the start path to find a directory containing
     both the NuttX OS directory and the NuttX Apps directory.
 
     Args:
@@ -267,6 +267,11 @@ def find_nuttx_root(start_path: Path, nuttx_name: str, apps_name: str) -> Option
         f"Search NuttX root dir in {start_path} for {nuttx_name} and {apps_name}"
     )
     path = start_path.resolve()
+    logger.debug(f"Starting search from {path}")
+
+    if (path / nuttx_name).exists() and (path / apps_name).exists():
+        logger.debug(f"Already on nuttxspace root directory {path}")
+        return path
 
     while path != path.parent:
         if (path / nuttx_name).exists() and (path / apps_name).exists():

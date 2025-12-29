@@ -185,9 +185,10 @@ class NuttXBuilder:
                 - bool: True if environment is valid, False otherwise.
                 - str: Error message if validation failed, empty string if valid.
         """
-        logger.info(
+        logger.debug(
             f"Validating NuttX environment: nuttx_dir={self.nuttx_path},"
-            f" apps_dir={self.apps_path}"
+            f" apps_dir={self.apps_path}, "
+            f"nuttxspace_path={self.nuttxspace_path}"
         )
 
         # Check for NuttX environment files

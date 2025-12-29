@@ -51,6 +51,6 @@ The following are features that should be added to this project:
 8. (OK) Support kconfig-merger
 9. (OK) Support disabling build log output
 10. Prettify logging: add colored output and option to log to file
-11. Replace the shelve module: use .ini file instead
+11. (OK) Replace the shelve module: use .ini file instead
 12. Add support for custom Make options on `NuttXBuilder.build`
 13. (Partial support) Support extra flags on configure.sh script

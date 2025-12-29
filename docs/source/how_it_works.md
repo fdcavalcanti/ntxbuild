@@ -7,11 +7,11 @@ When `start` option is called, the "environment" is prepared. This means things:
 - An environment file is created which is used to store some information
 - The path to the NuttX repository is added to the env file
 - The path to the NuttX Application repository is also added to the env file
+- The build tool is added to the env file (Make or CMake)
 
 This env file will be used by the tool to locate the repositories.
-In the future (as a TO-DO task), the same file (which may be changed to a .ini file)
-could be used to store other stuff, such as out-of-tree repositories and path
-to toolchains.
+In the future (as a TO-DO task), the same file could be used to store other information,
+such as out-of-tree repositories and path to toolchains.
 
 Once the environment file is setup, a `NuttXBuilder` instance is created and
 it sets up the NuttX environment by checking if the repository is valid
