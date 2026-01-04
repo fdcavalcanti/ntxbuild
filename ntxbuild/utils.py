@@ -46,27 +46,21 @@ def run_bash_script(
     Returns:
         subprocess.CompletedProcess: The result of the command execution.
     """
-    try:
-        cmd = [script_path]
-        if args:
-            cmd.extend(args)
+    cmd = [script_path]
+    if args:
+        cmd.extend(args)
 
-        cmd_str = " ".join(cmd)
-        logger.debug(f"Running bash script: {cmd_str} in cwd={cwd}")
-        result = subprocess.call(
-            cmd_str,
-            cwd=cwd,
-            shell=True,
-            stdout=subprocess.DEVNULL if no_stdout else None,
-            stderr=subprocess.DEVNULL if no_stderr else None,
-        )
-        logger.debug(f"Bash script result: {result}")
-        return result
-
-    except Exception as e:
-        logger.error(f"Failed to run bash script {script_path}: {e}", exc_info=True)
-        print(f"Failed to run bash script {script_path}: {e}")
-        return 1
+    cmd_str = " ".join(cmd)
+    logger.debug(f"Running bash script: {cmd_str} in cwd={cwd}")
+    result = subprocess.call(
+        cmd_str,
+        cwd=cwd,
+        shell=True,
+        stdout=subprocess.DEVNULL if no_stdout else None,
+        stderr=subprocess.DEVNULL if no_stderr else None,
+    )
+    logger.debug(f"Bash script result: {result}")
+    return result
 
 
 def run_kconfig_command(
@@ -98,8 +92,6 @@ def run_kconfig_command(
         return result
     except subprocess.CalledProcessError as e:
         logger.error(f"Kconfig command failed: {' '.join(cmd)}, error: {e}")
-        print(f"Kconfig command failed: {' '.join(cmd)}")
-        print(f"Error: {e}")
         raise
 
 
@@ -129,81 +121,74 @@ def run_make_command(
     """
     logger.debug(f"Running make command: {cmd} :: {' '.join(cmd)} in cwd={cwd}")
 
-    try:
-        # Use Popen for real-time output and binary mode to
-        # preserve control characters
-        process = subprocess.Popen(
-            cmd,
-            cwd=cwd,
-            stdout=subprocess.PIPE if not no_stdout else subprocess.DEVNULL,
-            stderr=subprocess.PIPE if not no_stderr else subprocess.DEVNULL,
-            text=False,  # Use binary mode
-            bufsize=0,  # No buffering
-        )
+    # Use Popen for real-time output and binary mode to
+    # preserve control characters
+    process = subprocess.Popen(
+        cmd,
+        cwd=cwd,
+        stdout=subprocess.PIPE if not no_stdout else subprocess.DEVNULL,
+        stderr=subprocess.PIPE if not no_stderr else subprocess.DEVNULL,
+        text=False,  # Use binary mode
+        bufsize=0,  # No buffering
+    )
 
-        if no_stdout and no_stderr:
-            process.wait()
-            return process
-
-        # Build list of readable streams (only include pipes, not DEVNULL)
-        readable_streams = []
-        if not no_stdout:
-            readable_streams.append(process.stdout)
-        if not no_stderr:
-            readable_streams.append(process.stderr)
-
-        # Read output in real-time
-        while True:
-            # Check if process has finished
-            if process.poll() is not None:
-                break
-
-            # Check for available output (only if we have valid streams)
-            if readable_streams:
-                reads, _, _ = select.select(readable_streams, [], [], 0.1)
-            else:
-                # No streams to read, just wait a bit
-                time.sleep(0.1)
-                continue
-
-            for stream in reads:
-                if stream == process.stdout:
-                    chunk = stream.read(1024)  # Read in chunks
-                    if chunk:
-                        # Decode and print immediately, preserving control characters
-                        text = chunk.decode("utf-8", errors="replace")
-                        print(text, end="", flush=True)
-
-                elif stream == process.stderr:
-                    chunk = stream.read(1024)  # Read in chunks
-                    if chunk:
-                        # Decode and print immediately, preserving control characters
-                        text = chunk.decode("utf-8", errors="replace")
-                        print(text, end="", file=sys.stderr, flush=True)
-
-        # Read any remaining output and print it
-        remaining_stdout, remaining_stderr = process.communicate()
-        if remaining_stdout:
-            print(
-                remaining_stdout.decode("utf-8", errors="replace"), end="", flush=True
-            )
-        if remaining_stderr:
-            print(
-                remaining_stderr.decode("utf-8", errors="replace"),
-                end="",
-                file=sys.stderr,
-                flush=True,
-            )
-
-        if process.returncode != 0:
-            logger.error(f"Make command failed with return code: {process.returncode}")
-
-        logger.debug(f"Make command succeeded with return code: {process.returncode}")
+    if no_stdout and no_stderr:
+        process.wait()
         return process
 
-    except Exception as e:
-        logger.error(f"Make command failed: {' '.join(cmd)}, error: {e}")
-        return e  # Fix: verify if this return makes sense
+    # Build list of readable streams (only include pipes, not DEVNULL)
+    readable_streams = []
+    if not no_stdout:
+        readable_streams.append(process.stdout)
+    if not no_stderr:
+        readable_streams.append(process.stderr)
+
+    # Read output in real-time
+    while True:
+        # Check if process has finished
+        if process.poll() is not None:
+            break
+
+        # Check for available output (only if we have valid streams)
+        if readable_streams:
+            reads, _, _ = select.select(readable_streams, [], [], 0.1)
+        else:
+            # No streams to read, just wait a bit
+            time.sleep(0.1)
+            continue
+
+        for stream in reads:
+            if stream == process.stdout:
+                chunk = stream.read(1024)  # Read in chunks
+                if chunk:
+                    # Decode and print immediately, preserving control characters
+                    text = chunk.decode("utf-8", errors="replace")
+                    print(text, end="", flush=True)
+
+            elif stream == process.stderr:
+                chunk = stream.read(1024)  # Read in chunks
+                if chunk:
+                    # Decode and print immediately, preserving control characters
+                    text = chunk.decode("utf-8", errors="replace")
+                    print(text, end="", file=sys.stderr, flush=True)
+
+    # Read any remaining output and print it
+    remaining_stdout, remaining_stderr = process.communicate()
+    if remaining_stdout:
+        print(remaining_stdout.decode("utf-8", errors="replace"), end="", flush=True)
+    if remaining_stderr:
+        print(
+            remaining_stderr.decode("utf-8", errors="replace"),
+            end="",
+            file=sys.stderr,
+            flush=True,
+        )
+
+    if process.returncode != 0:
+        logger.error(f"Make command failed with return code: {process.returncode}")
+
+    logger.debug(f"Make command succeeded with return code: {process.returncode}")
+    return process
 
 
 def run_curses_command(
