@@ -8,12 +8,13 @@ such as make, kconfig-tweak, menuconfig and most used bash scripts (such as conf
 This tool provides a command line interface that supports NuttX configuration and building,
 while also providing a Python API that allows you to script your builds.
 
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Linux](https://img.shields.io/badge/platform-Linux-lightgrey.svg)](https://www.linux.org/)
 
 ## Features
 
 - **Environment Management**: Automatic NuttX workspace detection and configuration
+- **Python API**: API `ntxbuild` available for building NuttX using Python scripts
 - **Parallel Builds**: Support for multi-threaded builds with isolated workspaces
 - **Real-time Output**: Live build progress with proper ANSI escape sequence handling
 - **Configuration Management**: Kconfig integration for easy system configuration
@@ -23,9 +24,10 @@ while also providing a Python API that allows you to script your builds.
 
 ## Requirements
 
-- **Python 3.9+**
+- **Python 3.10+**
 - **NuttX** source code and applications
 - **Make** and standard build tools required by NuttX RTOS
+- **CMake** supported but optional
 
 ## Installation
 
