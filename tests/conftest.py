@@ -3,6 +3,7 @@ Pytest configuration and fixtures for ntxbuild tests.
 """
 
 import logging
+import shutil
 from pathlib import Path
 
 import pytest
@@ -53,7 +54,7 @@ def nuttxspace():
         # Cleanup: remove the entire workspace
         if workspace.exists():
             logging.info(f"🧹 Cleaning up NuttX workspace at {workspace}")
-            # shutil.rmtree(workspace)
+            shutil.rmtree(workspace, ignore_errors=True)
             logging.info("✅ Workspace cleanup completed")
 
 
