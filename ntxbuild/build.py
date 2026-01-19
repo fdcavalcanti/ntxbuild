@@ -97,6 +97,7 @@ class BaseBuilder(abc.ABC):
         self.no_stdout = False
         self.no_stderr = False
         self.rel_apps_path = None
+        self._build_tool = None
 
         self._validate_nuttx_environment()
         logging.debug(
@@ -123,6 +124,11 @@ class BaseBuilder(abc.ABC):
     @abc.abstractmethod
     def distclean(self) -> subprocess.CompletedProcess:
         ...
+
+    @property
+    def build_tool(self) -> BuildTool:
+        """Get the build tool used by the builder."""
+        return self._build_tool
 
     def supress_stdout(self, enable: bool) -> None:
         """Suppress stdout output from commands.
@@ -222,6 +228,7 @@ class MakeBuilder(BaseBuilder):
             os_dir=os_dir,
             apps_dir=apps_dir,
         )
+        self._build_tool = BuildTool.MAKE
 
     def make(self, command: str) -> subprocess.CompletedProcess:
         """Run any make command inside NuttX directory.
@@ -391,6 +398,7 @@ class CMakeBuilder(BaseBuilder):
             os_dir=os_dir,
             apps_dir=apps_dir,
         )
+        self._build_tool = BuildTool.CMAKE
         self.use_ninja = True
         self.build_dir = self.DEFAULT_BUILD_DIR
 

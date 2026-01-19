@@ -51,6 +51,7 @@ def prepare_env(
             .ntxenv is not found when start is False.
     """
     current_dir = Path.cwd()
+    logger.debug(f"Search for .ntxenv in: {current_dir}")
 
     if start:
         # This validates the directory structure
@@ -64,19 +65,21 @@ def prepare_env(
     # in the parent directory. If not present in any directory, raise an error.
     try:
         env = load_ntx_env(current_dir)
+        logger.debug(f"Loaded .ntxenv from {current_dir}")
     except FileNotFoundError:
         logger.debug(f"No .ntxenv found in {current_dir}, looking in parent directory")
+        try:
+            env = load_ntx_env(current_dir.parent)
+            logger.debug(f"Loaded .ntxenv from {current_dir.parent}")
+        except FileNotFoundError:
+            raise click.ClickException(
+                "No .ntxenv found in current directory or parent directory. \n"
+                "Please run 'start' command first to setup the environment and "
+                "make sure to execute it in the correct directory (either "
+                "nuttxspace/ or nuttxspace/nuttx)."
+            )
 
-    try:
-        env = load_ntx_env(current_dir.parent)
-    except FileNotFoundError:
-        raise click.ClickException(
-            "No .ntxenv found in current directory or parent directory. \n"
-            "Please run 'start' command first to setup the environment and "
-            "make sure to execute it in the correct directory (either "
-            "nuttxspace/ or nuttxspace/nuttx)."
-        )
-
+    logger.debug(".ntxenv loaded successfully")
     return env["general"]
 
 
@@ -367,14 +370,13 @@ def make(ctx):
     """
     command = " ".join(tuple(ctx.args))
     click.echo(f"🧹 Running make {command}")
-    env = prepare_env()
+    builder = get_builder()
 
-    if env.get("build_tool") == BuildTool.CMAKE:
+    if builder.build_tool == BuildTool.CMAKE:
         click.echo("❌ Project is configured for CMake. Use 'cmake' command instead.")
         sys.exit(1)
 
     try:
-        builder = get_builder()
         result = builder.make(command)
         sys.exit(result.returncode)
     except click.ClickException as e:
@@ -395,14 +397,13 @@ def cmake(ctx):
     """
     command = " ".join(tuple(ctx.args))
     click.echo(f"🧹 Running cmake {command}")
-    env = prepare_env()
+    builder = get_builder()
 
-    if env.get("build_tool") == BuildTool.MAKE:
+    if builder.build_tool == BuildTool.MAKE:
         click.echo("❌ Project is configured for Make. Use 'make' command instead.")
         sys.exit(1)
 
     try:
-        builder = get_builder()
         result = builder.cmake(command)
         sys.exit(result.returncode)
     except click.ClickException as e:
