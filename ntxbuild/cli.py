@@ -330,23 +330,28 @@ def kconfig(read, set_value, set_str, apply, value, merge):
     """
     env = prepare_env()
     try:
-        config_manager = ConfigManager(env.get("nuttxspace_path"), env.get("nuttx_dir"))
+        config_manager = ConfigManager(
+            env.get("nuttxspace_path"), env.get("nuttx_dir"), env.get("apps_dir")
+        )
         if read:
             config_manager.kconfig_read(read)
         elif set_value:
             if not value:
                 click.echo("❌ Set value is required")
+                sys.exit(1)
             config_manager.kconfig_set_value(set_value, value)
         elif set_str:
             if not value:
                 click.echo("❌ Set string is required")
+                sys.exit(1)
             config_manager.kconfig_set_str(set_str, value)
         elif apply:
             config_manager.kconfig_apply_changes()
         elif merge:
             if not value:
                 click.echo("❌ Merge file is required")
-            config_manager.kconfig_merge_config_file(value, None)
+                sys.exit(1)
+            config_manager.kconfig_merge_config_file(value)
         else:
             click.echo("❌ No action specified")
     except click.ClickException as e:

@@ -64,38 +64,6 @@ def run_bash_script(
     return result
 
 
-def run_kconfig_command(
-    cmd: List[str], cwd: Optional[str] = None
-) -> subprocess.CompletedProcess:
-    """Run a kconfig-tweak command and return CompletedProcess object.
-
-    Executes a kconfig-tweak command with captured output. Raises an
-    exception if the command fails.
-
-    Args:
-        cmd: Command to run as a list of strings (e.g.,
-        ["kconfig-tweak", "--enable", "CONFIG_FOO"]).
-        cwd: Working directory for the command. Defaults to None (current directory).
-
-    Returns:
-        subprocess.CompletedProcess: The result of the command execution
-            with captured stdout and stderr.
-
-    Raises:
-        subprocess.CalledProcessError: If the command returns a non-zero exit code.
-    """
-    logger.debug(f"Running kconfig command: {' '.join(cmd)} in cwd={cwd}")
-    try:
-        result = subprocess.run(
-            cmd, cwd=cwd, check=True, capture_output=True, text=True
-        )
-        logger.debug(f"Kconfig command succeeded with return code: {result.returncode}")
-        return result
-    except subprocess.CalledProcessError as e:
-        logger.error(f"Kconfig command failed: {' '.join(cmd)}, error: {e}")
-        raise
-
-
 def run_make_command(
     cmd: List[str],
     cwd: Optional[str] = None,
