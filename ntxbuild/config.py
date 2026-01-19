@@ -6,6 +6,8 @@ import logging
 from enum import Enum
 from pathlib import Path
 
+from kconfiglib import Kconfig
+
 from . import utils
 
 # Get logger for this module
