@@ -206,6 +206,15 @@ class TestBuild:
         assert result.exit_code == 0
         assert (Path(nuttxspace_path) / "nuttx" / "nuttx").exists()
 
+    def test_build_from_nuttx_directory(self, nuttxspace_path):
+        """Test build command from nuttx directory."""
+        os.chdir(nuttxspace_path / "nuttx")
+
+        runner = CliRunner()
+        result = runner.invoke(build, ["-j4"])
+        assert result.exit_code == 0
+        assert (Path(nuttxspace_path) / "nuttx" / "nuttx").exists()
+
     def test_build_without_ntxenv(self, nuttxspace_path):
         """Test build command fails when .ntxenv doesn't exist."""
         os.chdir(nuttxspace_path)
