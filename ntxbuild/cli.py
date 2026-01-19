@@ -60,11 +60,21 @@ def prepare_env(
         env = load_ntx_env(nuttxspace)
         return env["general"]
 
+    # Find .ntxenv in the current directory. If not present, look
+    # in the parent directory. If not present in any directory, raise an error.
     try:
         env = load_ntx_env(current_dir)
     except FileNotFoundError:
+        logger.debug(f"No .ntxenv found in {current_dir}, looking in parent directory")
+
+    try:
+        env = load_ntx_env(current_dir.parent)
+    except FileNotFoundError:
         raise click.ClickException(
-            "No .ntxenv found. Please run 'start' command first."
+            "No .ntxenv found in current directory or parent directory. \n"
+            "Please run 'start' command first to setup the environment and "
+            "make sure to execute it in the correct directory (either "
+            "nuttxspace/ or nuttxspace/nuttx)."
         )
 
     return env["general"]
