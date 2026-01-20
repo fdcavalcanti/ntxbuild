@@ -11,7 +11,7 @@ import click
 
 from .build import BuildTool, nuttx_builder
 from .config import ConfigManager
-from .env_data import clear_ntx_env, load_ntx_env, save_ntx_env
+from .env_data import clear_ntx_env, create_base_env_file, load_ntx_env
 from .setup import download_nuttx_apps_repo, download_nuttx_repo
 from .utils import NUTTX_APPS_DEFAULT_DIR_NAME, NUTTX_DEFAULT_DIR_NAME, find_nuttx_root
 
@@ -56,7 +56,7 @@ def prepare_env(
         # This validates the directory structure
         nuttxspace = find_nuttx_root(current_dir, nuttx_dir, apps_dir)
 
-        save_ntx_env(nuttxspace, nuttx_dir, apps_dir, build_tool)
+        create_base_env_file(nuttxspace, nuttx_dir, apps_dir, build_tool)
         env = load_ntx_env(nuttxspace)
         return env["general"]
 
