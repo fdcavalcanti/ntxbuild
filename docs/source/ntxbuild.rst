@@ -55,6 +55,16 @@ downloading the NuttX source code.
    :show-inheritance:
    :undoc-members:
 
+Toolchains Module
+---------------------
+
+This contains helper funtions to manage toolchains, such as installing and listing them.
+
+.. automodule:: ntxbuild.toolchains
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 Utilities Module
 ---------------------
 

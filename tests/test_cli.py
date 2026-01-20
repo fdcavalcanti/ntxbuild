@@ -11,7 +11,7 @@ from ntxbuild.cli import (
     clean,
     cmake,
     distclean,
-    install,
+    download,
     kconfig,
     main,
     make,
@@ -137,6 +137,7 @@ class TestStartCmake:
         env_file = nuttxspace_path / ".ntxenv"
         if env_file.exists():
             runner = CliRunner()
+            runner.invoke(clean, [])
             runner.invoke(distclean, [])
 
     def test_start_with_cmake(self, nuttxspace_path):
@@ -180,6 +181,7 @@ class TestBuild:
         env_file = nuttxspace_path / ".ntxenv"
         if env_file.exists():
             runner = CliRunner()
+            runner.invoke(clean, [])
             runner.invoke(distclean, [])
 
     def test_build_with_parallel_jobs(self, nuttxspace_path):
@@ -189,8 +191,8 @@ class TestBuild:
         # Setup environment first
         runner = CliRunner()
         runner.invoke(start, ["sim", "nsh"])
+        result = runner.invoke(build, ["-j10"])
 
-        result = runner.invoke(build, ["-j4"])
         assert result.exit_code == 0
         assert (Path(nuttxspace_path) / "nuttx" / "nuttx").exists()
 
@@ -316,15 +318,15 @@ class TestDistclean:
         )
 
 
-class TestInstall:
-    """Test suite for the install command."""
+class TestDownload:
+    """Test suite for the download command."""
 
     def test_install_when_repos_exist(self, nuttxspace_path):
-        """Test install command when repositories already exist."""
+        """Test download command when repositories already exist."""
         os.chdir(nuttxspace_path)
 
         runner = CliRunner()
-        result = runner.invoke(install, [])
+        result = runner.invoke(download, [])
 
         assert result.exit_code == 0
         assert (
@@ -333,11 +335,11 @@ class TestInstall:
         )
 
     def test_install_verifies_structure(self, nuttxspace_path):
-        """Test install command verifies directory structure."""
+        """Test download command verifies directory structure."""
         os.chdir(nuttxspace_path)
 
         runner = CliRunner()
-        result = runner.invoke(install, [])
+        result = runner.invoke(download, [])
 
         assert result.exit_code == 0
         # Verify directories exist
@@ -532,7 +534,7 @@ class TestCmake:
         env_file = nuttxspace_path / ".ntxenv"
         if env_file.exists():
             runner = CliRunner()
-            runner.invoke(distclean, [])
+            runner.invoke(clean, [])
 
     def test_cmake_command(self, nuttxspace_path):
         """Test cmake command with a valid target."""

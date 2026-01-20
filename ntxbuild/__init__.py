@@ -6,7 +6,6 @@ A Python package to assist with NuttX build system operations.
 
 import logging
 import sys
-from pathlib import Path
 
 from . import build, config, utils
 
@@ -17,10 +16,9 @@ __all__ = ["build", "config", "utils"]
 def _setup_logging():
     """Setup logging configuration for the ntxbuild library."""
     # Create logs directory if it doesn't exist
-    log_dir = Path.home() / ".ntxbuild" / "logs"
+    log_dir = utils.NTXBUILD_DEFAULT_USER_DIR / "logs"
     log_dir.mkdir(parents=True, exist_ok=True)
 
-    # Configure logging.
     logging.basicConfig(
         level=logging.WARNING,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -29,7 +27,6 @@ def _setup_logging():
         ],
     )
 
-    # Set our library logger level
     logger = logging.getLogger("ntxbuild")
     logger.setLevel(logging.WARNING)
 

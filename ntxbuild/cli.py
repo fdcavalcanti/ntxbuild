@@ -13,6 +13,7 @@ from .build import BuildTool, nuttx_builder
 from .config import ConfigManager
 from .env_data import clear_ntx_env, create_base_env_file, load_ntx_env
 from .setup import download_nuttx_apps_repo, download_nuttx_repo
+from .toolchains import ManagePath, ToolchainInstaller
 from .utils import NUTTX_APPS_DEFAULT_DIR_NAME, NUTTX_DEFAULT_DIR_NAME, find_nuttx_root
 
 logger = logging.getLogger("ntxbuild.cli")
@@ -134,14 +135,12 @@ def main(log_level):
 
 
 @main.command()
-def install():
-    """Install NuttX and Apps repositories.
+def download():
+    """Download NuttX and Apps repositories.
 
     Downloads the NuttX OS and Apps repositories if they don't already
     exist in the current directory. If the repositories are already
     present, this command will verify their existence.
-
-    Exits with code 0 on success.
     """
     current_dir = Path.cwd()
     click.echo("🚀 Downloading NuttX and Apps repositories...")
@@ -157,6 +156,75 @@ def install():
         find_nuttx_root(current_dir, nuttx_dir, apps_dir)
 
     click.echo("✅ Installation completed successfully.")
+    sys.exit(0)
+
+
+@main.group()
+def toolchain():
+    """Manage NuttX toolchains.
+
+    Provides commands to install and list available toolchains for NuttX builds.
+    """
+    pass
+
+
+@toolchain.command()
+@click.argument("toolchain_name", nargs=1, required=True)
+@click.argument("nuttx_version", nargs=1, required=False)
+def install(toolchain_name, nuttx_version):
+    """Install a toolchain for a specific NuttX version.
+
+    Downloads and installs a toolchain from the URLs specified in toolchains.ini.
+    The toolchain will be installed to ~/ntxenv/toolchains/<toolchain-name>/.
+
+    The optional argument NUTTX_VERSION (x.y.z) is the NuttX release version.
+    Defaults to the latest stable version.
+
+    You can also call 'ntxbuild toolchain list' to see available toolchains.
+    """
+    try:
+        tinstaller = ToolchainInstaller(toolchain_name, nuttx_version)
+    except AssertionError:
+        click.echo(
+            f"❌ Toolchain {toolchain_name} not found. "
+            "Make sure this toolchain is available to download.\n"
+            "Call 'ntxbuild toolchain list' to see available toolchains."
+        )
+        sys.exit(1)
+
+    click.echo(
+        f"Installing toolchain {tinstaller.toolchain_name} "
+        f"for NuttX v{tinstaller.nuttx_version}"
+    )
+
+    try:
+        toolchain_path = tinstaller.install()
+    except FileExistsError:
+        click.echo(f"Toolchain {tinstaller.toolchain_name} already installed")
+        sys.exit(0)
+
+    click.echo(f"✅ Toolchain {toolchain_name} installed successfully")
+    click.echo(f"Installation directory: {toolchain_path}")
+    click.echo("Note: Toolchains are sourced automatically during build.")
+    sys.exit(0)
+
+
+@toolchain.command()
+def list():
+    """List available toolchains.
+
+    Displays all toolchains that can be installed for NuttX builds.
+    """
+    toolm = ManagePath()
+    supported = toolm.supported_toolchains
+    installed = toolm.installed_toolchains
+
+    click.echo("Available toolchains:")
+    for toolchain in supported:
+        click.echo(f"  - {toolchain}")
+    click.echo("Installed toolchains:")
+    for toolchain in installed:
+        click.echo(f"  - {toolchain}")
     sys.exit(0)
 
 
@@ -305,6 +373,7 @@ def build(parallel):
     Exits with code 0 on success, 1 on error, or the build exit code
     on build failure.
     """
+    ManagePath().add_all_toolchains_to_path()
     try:
         builder = get_builder()
         result = builder.build(parallel)
@@ -324,6 +393,7 @@ def distclean():
     Exits with code 0 on success.
     """
     click.echo("🧹 Resetting NuttX environment...")
+    ManagePath().add_all_toolchains_to_path()
     builder = get_builder()
     builder.distclean()
     clear_ntx_env(builder.nuttxspace_path)
@@ -340,6 +410,7 @@ def clean():
     Exits with code 0 on success, 1 on error.
     """
     click.echo("🧹 Cleaning build artifacts...")
+    ManagePath().add_all_toolchains_to_path()
     try:
         builder = get_builder()
         builder.clean()
@@ -370,6 +441,7 @@ def make(ctx):
     """
     command = " ".join(tuple(ctx.args))
     click.echo(f"🧹 Running make {command}")
+    ManagePath().add_all_toolchains_to_path()
     builder = get_builder()
 
     if builder.build_tool == BuildTool.CMAKE:
@@ -397,6 +469,7 @@ def cmake(ctx):
     """
     command = " ".join(tuple(ctx.args))
     click.echo(f"🧹 Running cmake {command}")
+    ManagePath().add_all_toolchains_to_path()
     builder = get_builder()
 
     if builder.build_tool == BuildTool.MAKE:

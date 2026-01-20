@@ -76,3 +76,6 @@ local_scheme = "no-local-version"
 [tool.setuptools.packages.find]
 include = ["ntxbuild*"]
 exclude = ["cov_html*", "tests*", "nuttxspace*"]
+
+[tool.setuptools.package-data]
+ntxbuild = ["toolchains.ini"]

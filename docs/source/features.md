@@ -7,6 +7,11 @@
 - Menuconfig available and also kconfig options modification directly from command line
 - Full Python API support
 
+## Toolchain Management
+- The toolchain module provides a quick way to download toolchains for supported architectures.
+- Installed on home directory for general use when needed even outside `ntxbuild` CLI.
+- Toolchains are organized by NuttX release and default to latest version.
+
 ## CMake Support
 The use of Makefile is the default state of `ntxbuild`. To build using CMake, pass
 `--use-cmake` to the `ntxbuild start` command. This will setup the directory to CMake
