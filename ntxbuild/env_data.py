@@ -1,13 +1,41 @@
 import configparser
 import logging
-import os
 from pathlib import Path
 
 # Get logger for this module
 logger = logging.getLogger("ntxbuild.env_data")
 
 
-def save_ntx_env(
+def append_to_general_section(env_file: Path, key: str, value: str) -> None:
+    """Append a key-value pair to the general section of the environment file.
+
+    Args:
+        env_file: Path to the environment file.
+        key: Key to append.
+        value: Value to append.
+    """
+    config = configparser.ConfigParser()
+    config.read(env_file)
+    config["general"][key] = value
+    with env_file.open("w", encoding="utf-8") as f:
+        config.write(f)
+
+
+def remove_from_general_section(env_file: Path, key: str) -> None:
+    """Remove a key from the general section of the environment file.
+
+    Args:
+        env_file: Path to the environment file.
+        key: Key to remove.
+    """
+    config = configparser.ConfigParser()
+    config.read(env_file)
+    config["general"].pop(key)
+    with env_file.open("w", encoding="utf-8") as f:
+        config.write(f)
+
+
+def create_base_env_file(
     nuttxspace_path: Path, nuttx_dir: str, apps_dir: str, build_tool: str = "make"
 ) -> None:
     """Save environment configuration to an INI file.
@@ -20,12 +48,16 @@ def save_ntx_env(
     """
     env_file = nuttxspace_path / ".ntxenv"
     config = configparser.ConfigParser()
-    config["general"] = {
-        "nuttxspace_path": str(nuttxspace_path),
-        "nuttx_dir": nuttx_dir,
-        "apps_dir": apps_dir,
-        "build_tool": build_tool,
-    }
+    config.read_dict(
+        {
+            "general": {
+                "nuttxspace_path": str(nuttxspace_path),
+                "nuttx_dir": nuttx_dir,
+                "apps_dir": apps_dir,
+                "build_tool": build_tool,
+            }
+        }
+    )
 
     try:
         with env_file.open("w", encoding="utf-8") as f:
@@ -48,9 +80,6 @@ def load_ntx_env(nuttxspace_path: Path) -> configparser.ConfigParser:
 
     Returns None if the file is missing or invalid.
     """
-    # Change into the nuttxspace directory
-    os.chdir(nuttxspace_path)
-
     env_file = nuttxspace_path / ".ntxenv"
     if not env_file.exists():
         raise FileNotFoundError(f"Environment file does not exist: {env_file}")
