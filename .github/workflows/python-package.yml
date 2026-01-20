@@ -32,7 +32,7 @@ jobs:
         git gperf automake libtool pkg-config build-essential gperf genromfs \
         libgmp-dev libmpc-dev libmpfr-dev libisl-dev binutils-dev libelf-dev \
         libexpat1-dev gcc-multilib g++-multilib picocom u-boot-tools util-linux \
-        kconfig-frontends
+        kconfig-frontends cmake
     - name: Install package dependencies
       run: |
         python -m pip install --upgrade pip
@@ -43,4 +43,4 @@ jobs:
         pre-commit run --all-files
     - name: Test with pytest
       run: |
-        pytest
+        pytest -x

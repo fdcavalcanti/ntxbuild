@@ -17,6 +17,7 @@ from typing import List, Optional
 
 NUTTX_DEFAULT_DIR_NAME = "nuttx"
 NUTTX_APPS_DEFAULT_DIR_NAME = "nuttx-apps"
+NTXBUILD_DEFAULT_USER_DIR = Path.home() / "ntxenv"
 
 # Get logger for this module
 logger = logging.getLogger("ntxbuild.utils")

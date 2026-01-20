@@ -57,3 +57,53 @@ ntxbuild menuconfig
 ntxbuild kconfig --set-value CONFIG_DEBUG=y
 ntxbuild kconfig --set-str CONFIG_APP_NAME="MyApp"
 ```
+
+## Using Python
+Alternatively, you can automate your builds using a Python script instead of the CLI.
+
+```python
+from pathlib import Path
+from ntxbuild.build import MakeBuilder
+
+current_dir = Path.cwd()
+
+# Use the Makefile-based builder
+builder = MakeBuilder(current_dir, "nuttx", "nuttx-apps")
+# Initialize the board/defconfig
+setup_result = builder.initialize("sim", "nsh")
+
+# Execute the build with 10 parallel jobs
+builder.build(parallel=10)
+
+# You can now clean the environment if needed
+builder.distclean()
+```
+
+## Downloading Toolchains
+To visualize currently available toolchains, execute the `toolchain list` command:
+
+```bash
+$ ntxbuild toolchain list
+Available toolchains:
+  - clang-arm-none-eabi
+  - gcc-aarch64-none-elf
+  - gcc-arm-none-eabi
+  - xtensa-esp-elf
+  - riscv-none-elf
+Installed toolchains:
+  - xtensa-esp-elf
+```
+
+To install, execute the `toolchain install` command using any of the toolchains from the list above.
+
+```bash
+$ ntxbuild toolchain install gcc-arm-none-eabi
+Installing toolchain gcc-arm-none-eabi for NuttX v12.12.0
+✅ Toolchain gcc-arm-none-eabi installed successfully
+Installation directory: /home/fdcavalcanti/ntxenv/toolchains
+Note: Toolchains are sourced automatically during build.
+```
+
+> **_NOTE:_**  Toolchains are automatically appended to PATH when building from the CLI.
+
+> **_NOTE:_**  Toolchains are installed to `~/ntxenv/toolchains`.
