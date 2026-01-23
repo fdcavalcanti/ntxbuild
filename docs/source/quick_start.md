@@ -100,7 +100,7 @@ To install, execute the `toolchain install` command using any of the toolchains 
 $ ntxbuild toolchain install gcc-arm-none-eabi
 Installing toolchain gcc-arm-none-eabi for NuttX v12.12.0
 ✅ Toolchain gcc-arm-none-eabi installed successfully
-Installation directory: /home/fdcavalcanti/ntxenv/toolchains
+Installation directory: /home/user/ntxenv/toolchains
 Note: Toolchains are sourced automatically during build.
 ```
 
