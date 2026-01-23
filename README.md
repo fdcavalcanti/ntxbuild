@@ -1,27 +1,32 @@
 # ntxbuild
 
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Linux](https://img.shields.io/badge/platform-Linux-lightgrey.svg)](https://www.linux.org/)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/fdcavalcanti/ntxbuild/python-package.yml)
+![Read the Docs](https://img.shields.io/readthedocs/ntxbuild)
+
 **NuttX Build System Assistant** - A Python tool for managing and building NuttX RTOS projects with ease.
 
 ntxbuild is a wrapper around the many tools available in the NuttX repository. It wraps around utilities
 such as make, kconfig-tweak, menuconfig and most used bash scripts (such as configure.sh).
 
-Also, it provides different features, such as downloading required toolchains through the CLI.
+Also, it provides different features, such as downloading required toolchains and managing PATH.
 
 This tool provides a command line interface that supports NuttX configuration and building,
 while also providing a Python API that allows you to script your builds.
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![Linux](https://img.shields.io/badge/platform-Linux-lightgrey.svg)](https://www.linux.org/)
-
 ## Features
 
 - **Environment Management**: Automatic NuttX workspace detection and configuration
-- **Python API**: API `ntxbuild` available for building NuttX using Python scripts
-- **Parallel Builds**: Support for multi-threaded builds with isolated workspaces
+- **Python API**: ntxbuild is available as a Python package for building NuttX using Python scripts
 - **Real-time Output**: Live build progress with proper ANSI escape sequence handling
 - **Configuration Management**: Kconfig integration for easy system configuration
 - **Interactive Tools**: Support for curses-based tools like menuconfig
 - **Toolchin Support**: Download and use your required toolchain automatically through the CLI
+
+## Documentation
+
+Complete documentation, including usage examples and API reference, see: https://ntxbuild.readthedocs.io
 
 ## Requirements
 
@@ -32,38 +37,23 @@ while also providing a Python API that allows you to script your builds.
 
 ## Quick Start
 
-### 1. Initialize Your NuttX Environment
 
+### Build using CLI
+
+Navigate to your NuttX workspace and download latest NuttX and NuttX Apps using `ntxbuild`.
 ```bash
-# Navigate to your NuttX workspace
-cd /path/to/your/nuttx-workspace
-
-# Initialize with board and defconfig
-ntxbuild start sim nsh
+$ mkdir ~/nuttxspace
+$ cd ~/nuttxspace
+$ ntxbuild download
 ```
 
-### 2. Build Your Project
-
+Build the simulator using the `nsh` defconfig.
 ```bash
-# Build with default settings
-ntxbuild build
-
-# Or, build with parallel jobs
-ntxbuild build --parallel 8
+$ ntxbuild start sim nsh
+$ ntxbuild build --parallel 8
 ```
 
-### 3. Configure Your System
-
-```bash
-# Run menuconfig
-ntxbuild menuconfig
-
-# Set Kconfig values
-ntxbuild kconfig --set-value CONFIG_DEBUG=y
-ntxbuild kconfig --set-str CONFIG_APP_NAME="MyApp"
-```
-
-### Alternative Usage
+### Build using Python script
 Alternatively, you can automate your builds using a Python script instead of the CLI.
 
 ```python
@@ -84,6 +74,16 @@ builder.build(parallel=10)
 builder.distclean()
 ```
 
+### Installing toolchains
+Support for installing some of the most common toolchains is available.
+
+```bash
+$ ntxbuild toolchain install gcc-arm-none-eabi
+Installing toolchain gcc-arm-none-eabi for NuttX v12.12.0
+✅ Toolchain gcc-arm-none-eabi installed successfully
+Installation directory: /home/user/ntxenv/toolchains
+Note: Toolchains are sourced automatically during build.
+```
 
 ## Installation
 

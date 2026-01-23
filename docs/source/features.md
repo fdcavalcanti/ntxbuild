@@ -57,7 +57,7 @@ The following are features that should be added to this project:
 1. (OK) Publish on PyPi
 2. (OK) Add build using CMake
 3. Checkpatch script support
-4. Download and install compilers
+4. (OK) Download and install compilers
 5. Open the docs for a board
 6. Improve support for installing source (multi thread and API improvements)
 7. Export defconfig (make savedefconfig)
