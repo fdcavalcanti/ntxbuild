@@ -73,6 +73,17 @@ Utilities Module
    :show-inheritance:
    :undoc-members:
 
+NuttX Module
+---------------------
+
+Utilities for discovering and representing NuttX boards and defconfigs. This
+module provides small data classes to represent boards under `<nuttxspace>/nuttx/boards`.
+
+.. automodule:: ntxbuild.nuttx
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 Module contents
 ---------------
 

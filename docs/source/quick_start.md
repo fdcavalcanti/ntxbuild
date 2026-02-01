@@ -79,6 +79,68 @@ builder.build(parallel=10)
 builder.distclean()
 ```
 
+## View Available Boards and Configs
+It is possible to quickly see a table of available boards for a SoC or defconfigs for a board.
+
+For the board list, provide the SoC name as in `boards/<arch>/<soc>`.
+```bash
+$ ntxbuild list boards qemu
+╒═════════════╕
+│ Boards      │
+╞═════════════╡
+│ qemu-armv7a │
+├─────────────┤
+│ qemu-armv7r │
+├─────────────┤
+│ qemu-armv8a │
+├─────────────┤
+│ qemu-i486   │
+╘═════════════╛
+Total boards: 4
+
+$ ntxbuild list boards esp32c6
+╒═════════════════╕
+│ Boards          │
+╞═════════════════╡
+│ esp32c6-devkitc │
+├─────────────────┤
+│ esp32c6-devkitm │
+├─────────────────┤
+│ esp32c6-xiao    │
+╘═════════════════╛
+Total boards: 3
+```
+
+To view defconfigs, use the board name under `boards/<arch>/<soc>/<board>`.
+
+```
+$ ntxbuild list defconfigs esp32c6-devkitc
+╒══════════════════════╤════════════════════╕
+│ Defconfigs           │ Defconfigs         │
+╞══════════════════════╪════════════════════╡
+│ adc                  │ bmp180             │
+├──────────────────────┼────────────────────┤
+│ buttons              │ capture            │
+├──────────────────────┼────────────────────┤
+│ crypto               │ efuse              │
+├──────────────────────┼────────────────────┤
+│ gpio                 │ i2c                │
+|──────────────────────┼────────────────────┤
+[...]
+|──────────────────────┼────────────────────┤
+│ twai                 │ ulp                │
+├──────────────────────┼────────────────────┤
+│ usbconsole           │ watchdog           │
+├──────────────────────┼────────────────────┤
+│ wifi                 │                    │
+╘══════════════════════╧════════════════════╛
+╒═════════╤═════════════════╤════════╤═════════╤════════════════════════════════╕
+│   Total │ Board           │ Arch   │ Soc     │ Path (nuttx/boards/)           │
+╞═════════╪═════════════════╪════════╪═════════╪════════════════════════════════╡
+│      37 │ esp32c6-devkitc │ risc-v │ esp32c6 │ risc-v/esp32c6/esp32c6-devkitc │
+╘═════════╧═════════════════╧════════╧═════════╧════════════════════════════════╛
+```
+
 ## Downloading Toolchains
 To visualize currently available toolchains, execute the `toolchain list` command:
 
