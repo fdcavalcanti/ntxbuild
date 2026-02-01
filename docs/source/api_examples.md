@@ -100,3 +100,36 @@ for path in copied_paths:
 # Clean up when done
 cleanup_tmp_copies(copied_paths)
 ```
+
+## List available boards and defconfigs with Board Explorer
+
+The NuttxBoardExplorer allows the user to retrieve a list of boards, which
+can be filtered by arch, soc or individual board. Each returned board has
+a list of all defconfigs, which can be iterated and its content can be retrieved.
+
+This example demonstrates how to discover boards and defconfigs available
+in an existing NuttX repository using the lightweight helpers in
+`ntxbuild.nuttx`.
+
+```python
+from pathlib import Path
+from ntxbuild.nuttx import NuttxBoardExplorer
+
+# Path to the nuttx repository inside your nuttxspace
+nuttx_repo = Path.cwd() / "nuttx"
+
+# Create a filter and list all boards for a specific architecture
+nbf = NuttxBoardExplorer(nuttx_repo)
+boards = nbf.set_arch("arm").boards
+
+for board in boards:
+    print(f"Board: {board.name} (arch={board.arch} soc={board.soc})")
+    for cfg in board.defconfigs:
+        print(f"  - defconfig: {d.name}")
+        # optionally read the defconfig content
+        # print(d.content)
+
+# You can also find boards by soc or by exact board name
+boards_by_soc = nbf.set_soc("stm32").boards
+boards_by_name = nbf.set_board("nuttx-stm32").boards
+```

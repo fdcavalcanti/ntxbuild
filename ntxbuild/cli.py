@@ -12,6 +12,7 @@ import click
 from .build import BuildTool, nuttx_builder
 from .config import ConfigManager
 from .env_data import clear_ntx_env, create_base_env_file, load_ntx_env
+from .nuttx import NuttxBoardExplorer
 from .setup import download_nuttx_apps_repo, download_nuttx_repo
 from .toolchains import ManagePath, ToolchainInstaller
 from .utils import NUTTX_APPS_DEFAULT_DIR_NAME, NUTTX_DEFAULT_DIR_NAME, find_nuttx_root
@@ -508,6 +509,78 @@ def menuconfig(menuconfig):
         builder.menuconfig()
         sys.exit(0)
     except click.ClickException as e:
+        click.echo(f"❌ {e}")
+        sys.exit(1)
+
+
+@main.group()
+def list():  # noqa: F811
+    """List available boards and defconfigs.
+
+    Provides commands to list boards and defconfigs in the NuttX repository.
+    """
+    pass
+
+
+@list.command()
+@click.argument("soc")
+@click.option("--nuttx-dir", help="NuttX directory", default=NUTTX_DEFAULT_DIR_NAME)
+@click.option("--apps-dir", help="Apps directory", default=NUTTX_APPS_DEFAULT_DIR_NAME)
+def boards(soc, nuttx_dir, apps_dir):
+    """List available boards for a specific SoC/chip.
+
+    Example usage:
+        ntxbuild list boards <soc>
+    """
+    current_dir = Path.cwd()
+    logger.debug(f"Search for nuttx directory in: {current_dir}")
+
+    # This validates the directory structure. We don't use prepare_env
+    # because we don't need to load the environment just to check
+    # available boards.
+    nuttxspace = find_nuttx_root(current_dir, nuttx_dir, apps_dir)
+
+    try:
+        nuttx_path = nuttxspace / nuttx_dir
+        explorer = NuttxBoardExplorer(nuttx_path)
+        boards_list = explorer.set_soc(soc).boards
+        if not boards_list:
+            click.echo(f"No boards found for SoC: {soc}")
+            sys.exit(0)
+        explorer.print_board_summary()
+        sys.exit(0)
+    except Exception as e:
+        click.echo(f"❌ {e}")
+        sys.exit(1)
+
+
+@list.command()
+@click.argument("board")
+@click.option("--nuttx-dir", help="NuttX directory", default=NUTTX_DEFAULT_DIR_NAME)
+@click.option("--apps-dir", help="Apps directory", default=NUTTX_APPS_DEFAULT_DIR_NAME)
+def defconfigs(board, nuttx_dir, apps_dir):
+    """List available defconfigs for a specific board.
+
+    Example usage:
+        ntxbuild list defconfigs <board>
+    """
+    current_dir = Path.cwd()
+    logger.debug(f"Search for nuttx directory in: {current_dir}")
+
+    # This validates the directory structure. We don't use prepare_env
+    # because we don't need to load the environment just to check
+    # available defconfigs.
+    nuttxspace = find_nuttx_root(current_dir, nuttx_dir, apps_dir)
+    try:
+        nuttx_path = nuttxspace / nuttx_dir
+        explorer = NuttxBoardExplorer(nuttx_path)
+        boards_list = explorer.set_board(board).boards
+        if not boards_list:
+            click.echo(f"Board not found: {board}")
+            sys.exit(0)
+        boards_list[0].print_defconfig_summary()
+        sys.exit(0)
+    except Exception as e:
         click.echo(f"❌ {e}")
         sys.exit(1)
 

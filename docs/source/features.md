@@ -39,6 +39,19 @@ See usage examples on {doc}`api_examples`.
 - Configurable target directory
 - Automatic cleanup
 
+## Board Explorer
+
+The Board Explorer feature provides a simple way to discover and inspect
+the boards and available defconfigs inside a NuttX repository. It is available
+both through the CLI (commands that list boards) and the Python API
+(see `ntxbuild.nuttx` helpers).
+
+- Quickly find which boards support a particular architecture or SoC.
+- Programmatically build a list of candidate boards for automated testing or
+	CI matrix generation.
+- Provide a lightweight UI (or CLI output) that helps users choose a board
+	and defconfig before running `start` or `build` commands.
+
 ## Curses Support
 Menuconfig works just as usual through this tool.
 
