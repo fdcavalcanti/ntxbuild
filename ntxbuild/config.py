@@ -91,13 +91,14 @@ class KconfigParser(kconfiglib.Kconfig):
     KCONFIG_FILE = "Kconfig"
     KCONFIG_CONFIG = ".config"
 
-    def __init__(self, nuttx_path: Path, apps_path: Path = None):
+    def __init__(self, nuttx_path: Path, apps_path: Path = None, warn: bool = False):
         """Initialize the Kconfig parser.
 
         Args:
             nuttx_path: Path to the NuttX source directory.
             apps_path: Path to the NuttX apps directory. If None, defaults
                 to nuttx_path.parent / "nuttx-apps".
+            warn: Whether to show warnings. Defaults to True.
 
         Raises:
             FileNotFoundError: If the apps_path does not exist.
@@ -131,7 +132,7 @@ class KconfigParser(kconfiglib.Kconfig):
 
         os.chdir(self.nuttx_path)
         try:
-            super().__init__(self.KCONFIG_FILE, suppress_traceback=False)
+            super().__init__(self.KCONFIG_FILE, warn=warn, suppress_traceback=False)
         except Exception as e:
             logger.error(f"Error initializing Kconfig parser: {e}")
             self.environment_context.restore_environment()
@@ -159,7 +160,11 @@ class ConfigManager(KconfigParser):
     """
 
     def __init__(
-        self, nuttxspace_path: Path, nuttx_dir: str = "nuttx", apps_dir: str = None
+        self,
+        nuttxspace_path: Path,
+        nuttx_dir: str = "nuttx",
+        apps_dir: str = None,
+        warnings: bool = False,
     ):
         """Initialize the ConfigManager.
 
@@ -170,6 +175,7 @@ class ConfigManager(KconfigParser):
             apps_dir: Name of the NuttX apps directory within the workspace.
                 If None, defaults to "nuttx-apps".
                 Defaults to None.
+            warnings: Whether to show warnings. Defaults to True.
 
         Raises:
             FileNotFoundError: If the apps directory does not exist.
@@ -185,7 +191,7 @@ class ConfigManager(KconfigParser):
         else:
             self.apps_path = self.nuttxspace_path / "nuttx-apps"
 
-        super().__init__(self.nuttx_path, self.apps_path)
+        super().__init__(self.nuttx_path, self.apps_path, warn=warnings)
 
     @kconfig_chdir
     def kconfig_read(self, config: str) -> str:
@@ -218,6 +224,7 @@ class ConfigManager(KconfigParser):
             )
 
             logger.info(f"Kconfig read: {config}={value}")
+            print(f"{config}={value}")
             return value
         except Exception as e:
             self.environment_context.restore_environment()
@@ -258,7 +265,7 @@ class ConfigManager(KconfigParser):
                 logger.info(f"Kconfig option '{config}' enabled")
             else:
                 logger.error(f"Kconfig option '{config}' enable failed")
-
+            self.write_config()
             return ret
         except Exception as e:
             self.environment_context.restore_environment()
@@ -299,7 +306,7 @@ class ConfigManager(KconfigParser):
                 logger.info(f"Kconfig option '{config}' disabled")
             else:
                 logger.error(f"Kconfig option '{config}' disable failed")
-
+            self.write_config()
             return ret
         except Exception as e:
             self.environment_context.restore_environment()
@@ -396,7 +403,9 @@ class ConfigManager(KconfigParser):
             if not ret:
                 logger.error(f"Kconfig set value: {config}={value} failed")
             logger.info(f"Kconfig set value: {config}={value}")
+            self.write_config()
             return ret
+
         except Exception as e:
             self.environment_context.restore_environment()
             raise e
@@ -432,6 +441,7 @@ class ConfigManager(KconfigParser):
             if not ret:
                 logger.error(f"Kconfig set string: {config}={value} failed")
             logger.info(f"Kconfig set string: {config}={value}")
+            self.write_config()
             return ret
         except Exception as e:
             self.environment_context.restore_environment()
@@ -487,6 +497,7 @@ class ConfigManager(KconfigParser):
             logger.info(f"Kconfig merge config file: {source_file}")
             source_file = Path(source_file).resolve().as_posix()
             result = self.load_config(str(source_file), replace=False)
+            self.write_config()
             logger.info(f"Kconfig merge config file result: {result}")
         except Exception as e:
             self.environment_context.restore_environment()

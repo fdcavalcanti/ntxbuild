@@ -393,7 +393,7 @@ class TestKconfig:
         result = runner.invoke(kconfig, ["--set-value", "CONFIG_SYSTEM_NSH_PRIORITY"])
 
         assert result.exit_code != 0
-        assert "Set value is required" in result.output
+        assert "Option '--set-value' requires 2 arguments." in result.output
 
     def test_kconfig_set_str(self, nuttxspace_path):
         """Test kconfig set-str command."""
@@ -410,7 +410,7 @@ class TestKconfig:
         result = runner.invoke(kconfig, ["--set-str", "CONFIG_NSH_PROMPT_STRING"])
 
         assert result.exit_code != 0
-        assert "Set string is required" in result.output
+        assert "Option '--set-str' requires 2 arguments." in result.output
 
     def test_kconfig_apply(self, nuttxspace_path):
         """Test kconfig apply command."""
@@ -442,14 +442,14 @@ class TestKconfig:
         result = runner.invoke(kconfig, ["--merge"])
 
         assert result.exit_code != 0
-        assert "Merge file is required" in result.output
+        assert "Option '--merge' requires an argument." in result.output
 
     def test_kconfig_no_action(self, nuttxspace_path):
         """Test kconfig command without any action specified."""
         runner = CliRunner()
         result = runner.invoke(kconfig, [])
 
-        assert result.exit_code == 0
+        assert result.exit_code == 1
         assert "No action specified" in result.output
 
     def test_kconfig_without_ntxenv(self, nuttxspace_path):

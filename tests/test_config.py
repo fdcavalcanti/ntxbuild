@@ -91,16 +91,23 @@ def test_merge_config(nuttxspace_path):
     this_file = Path(__file__).resolve()
 
     config_file = this_file.parent / "configs" / "test_config"
+
+    value_before_nsh = config_manager.kconfig_read("CONFIG_NSH_SYSINITSCRIPT")
+    value_before_dd = config_manager.kconfig_read("CONFIG_SYSTEM_DD")
+    value_before_gpio = config_manager.kconfig_read("CONFIG_DEV_GPIO_NSIGNALS")
+
     assert config_file.exists()
     config_manager.kconfig_merge_config_file(config_file)
     config_manager.kconfig_apply_changes()
 
-    value = config_manager.kconfig_read("CONFIG_NSH_SYSINITSCRIPT")
-    assert value == "test_value"
-    value = config_manager.kconfig_read("CONFIG_SYSTEM_DD")
-    assert value == "n"
-    value = config_manager.kconfig_read("CONFIG_DEV_GPIO_NSIGNALS")
-    assert value == "2"
+    new_config_manager = ConfigManager(nuttxspace_path, "nuttx")
+
+    value = new_config_manager.kconfig_read("CONFIG_NSH_SYSINITSCRIPT")
+    assert value == "test_value" and value != value_before_nsh
+    value = new_config_manager.kconfig_read("CONFIG_SYSTEM_DD")
+    assert value == "n" and value != value_before_dd
+    value = new_config_manager.kconfig_read("CONFIG_DEV_GPIO_NSIGNALS")
+    assert value == "2" and value != value_before_gpio
 
 
 # Exception tests

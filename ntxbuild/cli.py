@@ -302,59 +302,59 @@ def start(apps_dir, nuttx_dir, store_nxtmpdir, use_cmake, board, defconfig):
 
 
 @main.command()
-@click.option("--read", "-r", help="Path to apps folder (relative or absolute)")
-@click.option("--set-value", help="Set Kconfig value")
-@click.option("--set-str", help="Set Kconfig string")
+@click.option("--read", "-r", help="Read Kconfig option", nargs=1)
+@click.option("--enable", "-e", help="Enable Kconfig option", nargs=1)
+@click.option("--disable", "-d", help="Disable Kconfig option", nargs=1)
+@click.option("--set-value", help="Set Kconfig value (int or hex)", nargs=2)
+@click.option("--set-str", help="Set Kconfig string", nargs=2)
 @click.option("--apply", "-a", help="Apply Kconfig options", is_flag=True)
-@click.option("--merge", "-m", help="Merge Kconfig file", is_flag=True)
-@click.argument("value", nargs=1, required=False)
-def kconfig(read, set_value, set_str, apply, value, merge):
+@click.option("--merge", "-m", help="Merge Kconfig file", nargs=1)
+def kconfig(
+    read: str,
+    enable: str,
+    disable: str,
+    set_value: str,
+    set_str: str,
+    apply: bool,
+    merge: int,
+):
     """Manage Kconfig options.
 
     Provides commands to read, set, and manage Kconfig configuration
     options. Only one action can be performed at a time.
 
-    Args:
-        read: Path to the Kconfig option to read (use with --read/-r).
-        set_value: Name of the Kconfig option to set a numerical value
-            (use with --set-value). Requires value argument.
-        set_str: Name of the Kconfig option to set a string value
-            (use with --set-str). Requires value argument.
-        apply: If True, apply Kconfig changes by running olddefconfig
-            (use with --apply/-a flag).
-        merge: If True, merge a Kconfig file (use with --merge/-m flag).
-            Requires value argument with the source file path.
-        value: Value to set (for --set-value or --set-str) or source
-            file path (for --merge). Defaults to None.
+    Example usage:
 
-    Exits with code 0 on success, 1 on error.
+        ntxbuild kconfig --enable CONFIG_DEBUG_INFO
+
+        ntxbuild kconfig --set-value CONFIG_RAM_START 0x1000
+
+        ntxbuild kconfig --merge ../configs/my_config
     """
     env = prepare_env()
     try:
         config_manager = ConfigManager(
             env.get("nuttxspace_path"), env.get("nuttx_dir"), env.get("apps_dir")
         )
-        if read:
-            config_manager.kconfig_read(read)
-        elif set_value:
-            if not value:
-                click.echo("❌ Set value is required")
-                sys.exit(1)
-            config_manager.kconfig_set_value(set_value, value)
-        elif set_str:
-            if not value:
-                click.echo("❌ Set string is required")
-                sys.exit(1)
-            config_manager.kconfig_set_str(set_str, value)
-        elif apply:
+
+        if apply:
             config_manager.kconfig_apply_changes()
         elif merge:
-            if not value:
-                click.echo("❌ Merge file is required")
-                sys.exit(1)
-            config_manager.kconfig_merge_config_file(value)
+            config_manager.kconfig_merge_config_file(merge)
+        elif read:
+            config_manager.kconfig_read(read)
+        elif set_value:
+            config_manager.kconfig_set_value(set_value[0], set_value[1])
+        elif set_str:
+            config_manager.kconfig_set_str(set_str[0], set_str[1])
+        elif enable:
+            config_manager.kconfig_enable(enable)
+        elif disable:
+            config_manager.kconfig_disable(disable)
         else:
             click.echo("❌ No action specified")
+            sys.exit(1)
+
     except click.ClickException as e:
         click.echo(f"❌ {e}")
         sys.exit(1)
