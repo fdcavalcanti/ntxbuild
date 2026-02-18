@@ -556,9 +556,10 @@ def boards(soc, nuttx_dir, apps_dir):
 
 @list.command()
 @click.argument("board")
+@click.option("--read", "-r", help="Read defconfig content", nargs=1)
 @click.option("--nuttx-dir", help="NuttX directory", default=NUTTX_DEFAULT_DIR_NAME)
 @click.option("--apps-dir", help="Apps directory", default=NUTTX_APPS_DEFAULT_DIR_NAME)
-def defconfigs(board, nuttx_dir, apps_dir):
+def defconfigs(board, read, nuttx_dir, apps_dir):
     """List available defconfigs for a specific board.
 
     Example usage:
@@ -578,7 +579,17 @@ def defconfigs(board, nuttx_dir, apps_dir):
         if not boards_list:
             click.echo(f"Board not found: {board}")
             sys.exit(0)
-        boards_list[0].print_defconfig_summary()
+        board = boards_list[0]
+        if read:
+            defconfig = board.get_defconfig(read)
+            if defconfig:
+                click.echo(f"Defconfig content for {read}:")
+                click.echo(defconfig.content)
+            else:
+                click.echo(f"Defconfig not found: {read}")
+                sys.exit(1)
+        else:
+            board.print_defconfig_summary()
         sys.exit(0)
     except Exception as e:
         click.echo(f"❌ {e}")

@@ -117,6 +117,13 @@ class Board:
             )
         )
 
+    def get_defconfig(self, name: str):
+        """Iterate available defconfigs and return the one with the given name."""
+        for defconfig in self.defconfigs:
+            if defconfig.name == name:
+                return defconfig
+        return None
+
 
 class NuttxBoardExplorer:
     """Helper to search for boards inside a NuttX repository.
