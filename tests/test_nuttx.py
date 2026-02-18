@@ -83,3 +83,31 @@ def test_nuttx_board_filter_setters_and_search(nuttxspace_path: Path):
     boards_board = nbf.set_board(board_name).boards
     # There should be at least one board matching the exact board name
     assert any(b.name == board_name for b in boards_board)
+
+
+def test_board_get_defconfig(nuttxspace_path: Path):
+    """Test Board.get_defconfig method to retrieve defconfig by name."""
+    nuttx_repo = nuttxspace_path / "nuttx"
+    if not nuttx_repo.exists():
+        pytest.skip("nuttx repo not available in tests/nuttxspace")
+
+    defconfig_file = _find_some_defconfig(nuttx_repo)
+    if not defconfig_file:
+        pytest.skip("No defconfig files found in nuttx repo; skipping test")
+
+    defconfig_dir = defconfig_file.parent
+    board_path = defconfig_dir.parent.parent
+    board = Board(path=board_path)
+
+    # Test getting an existing defconfig
+    defconfig_name = defconfig_dir.stem
+    found_defconfig = board.get_defconfig(defconfig_name)
+    assert found_defconfig is not None
+    assert found_defconfig.name == defconfig_name
+    assert found_defconfig.path == defconfig_dir
+    assert found_defconfig.content is not None
+    assert len(found_defconfig.content) > 0
+
+    # Test getting a non-existent defconfig
+    non_existent = board.get_defconfig("nonexistent_defconfig_xyz")
+    assert non_existent is None

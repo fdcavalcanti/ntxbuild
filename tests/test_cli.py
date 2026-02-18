@@ -646,3 +646,66 @@ class TestMain:
         result = runner.invoke(main, ["--log-level", "debug", "start", "sim", "nsh"])
 
         assert result.exit_code == 0
+
+
+class TestListDefconfigs:
+    """Test suite for the list defconfigs command."""
+
+    def test_list_defconfigs_without_read(self, nuttxspace_path):
+        """Test list defconfigs command without --read option."""
+        os.chdir(nuttxspace_path)
+
+        runner = CliRunner()
+        result = runner.invoke(main, ["list", "defconfigs", "sim"])
+
+        assert result.exit_code == 0
+        # Should show defconfig summary
+        assert "Defconfigs" in result.output or "Total" in result.output
+
+    def test_list_defconfigs_with_read_existing(self, nuttxspace_path):
+        """Test list defconfigs command with --read option for existing defconfig."""
+        os.chdir(nuttxspace_path)
+
+        runner = CliRunner()
+        result = runner.invoke(main, ["list", "defconfigs", "sim", "--read", "nsh"])
+
+        assert result.exit_code == 0
+        assert "Defconfig content for nsh:" in result.output
+        # Should contain actual defconfig content (at least some CONFIG lines)
+        assert "CONFIG" in result.output or len(result.output) > 50
+
+    def test_list_defconfigs_with_read_short_option(self, nuttxspace_path):
+        """Test list defconfigs command with -r short option."""
+        os.chdir(nuttxspace_path)
+
+        runner = CliRunner()
+        result = runner.invoke(main, ["list", "defconfigs", "sim", "-r", "nsh"])
+
+        assert result.exit_code == 0
+        assert "Defconfig content for nsh:" in result.output
+
+    def test_list_defconfigs_with_read_nonexistent(self, nuttxspace_path):
+        """Test list defconfigs command with --read option for non-existent
+        defconfig.
+        """
+        os.chdir(nuttxspace_path)
+
+        runner = CliRunner()
+        result = runner.invoke(
+            main, ["list", "defconfigs", "sim", "--read", "nonexistent_defconfig_xyz"]
+        )
+
+        assert result.exit_code == 1
+        assert "Defconfig not found: nonexistent_defconfig_xyz" in result.output
+
+    def test_list_defconfigs_invalid_board(self, nuttxspace_path):
+        """Test list defconfigs command with invalid board name."""
+        os.chdir(nuttxspace_path)
+
+        runner = CliRunner()
+        result = runner.invoke(
+            main, ["list", "defconfigs", "nonexistent_board_xyz", "--read", "nsh"]
+        )
+
+        assert result.exit_code == 0
+        assert "Board not found: nonexistent_board_xyz" in result.output
