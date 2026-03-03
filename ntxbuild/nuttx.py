@@ -144,6 +144,12 @@ class NuttxBoardExplorer:
 
     def __init__(self, nuttx_path: Path):
         self.boards_dir = Path(nuttx_path) / "boards"
+        if self.boards_dir.exists():
+            logger.debug(f"NuttX boards directory found at {self.boards_dir}")
+        else:
+            raise FileNotFoundError(
+                f"NuttX boards directory not found at {self.boards_dir}"
+            )
 
     @property
     def boards(self) -> list:

@@ -13,11 +13,12 @@ import sys
 import tempfile
 import time
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 NUTTX_DEFAULT_DIR_NAME = "nuttx"
 NUTTX_APPS_DEFAULT_DIR_NAME = "nuttx-apps"
 NTXBUILD_DEFAULT_USER_DIR = Path.home() / "ntxenv"
+NUTTX_APPS_DIR_NAMES = [NUTTX_APPS_DEFAULT_DIR_NAME, "apps"]
 
 # Get logger for this module
 logger = logging.getLogger("ntxbuild.utils")
@@ -29,7 +30,7 @@ def run_bash_script(
     cwd: Optional[str] = None,
     no_stdout: bool = False,
     no_stderr: bool = False,
-) -> subprocess.CompletedProcess:
+) -> int:
     """Run a bash script using subprocess.call and return exit code.
 
     Executes a bash script with optional arguments. Output can be
@@ -45,7 +46,8 @@ def run_bash_script(
         no_stderr: If True, suppress stderr output. Defaults to False.
 
     Returns:
-        subprocess.CompletedProcess: The result of the command execution.
+        int: Exit code of the script execution. Returns 0 on success,
+            non-zero on failure.
     """
     cmd = [script_path]
     if args:
@@ -69,7 +71,7 @@ def run_make_command(
     cwd: Optional[str] = None,
     no_stdout: bool = False,
     no_stderr: bool = False,
-) -> subprocess.CompletedProcess:
+) -> subprocess.Popen:
     """Run a make command with real-time output using Popen.
 
     Executes a make command and displays output in real-time, preserving
@@ -85,8 +87,6 @@ def run_make_command(
     Returns:
         subprocess.Popen: The process object with returncode attribute.
             Check returncode to determine success (0) or failure (non-zero).
-            Note: In case of exception, may return an Exception object instead
-            of a process (this is a known issue).
     """
     logger.debug(f"Running make command: {cmd} :: {' '.join(cmd)} in cwd={cwd}")
 
@@ -198,7 +198,7 @@ def run_curses_command(
         return 1
 
 
-def find_nuttx_root(start_path: Path, nuttx_name: str, apps_name: str) -> Optional[str]:
+def find_nuttx_root(start_path: Path) -> Tuple[Path, Path]:
     """Find the NuttX root directory.
 
     Searches UPWARD from the start path to find a directory containing
@@ -206,38 +206,61 @@ def find_nuttx_root(start_path: Path, nuttx_name: str, apps_name: str) -> Option
 
     Args:
         start_path: Path to start searching from (searches upward).
-        nuttx_name: Name of the NuttX OS directory (e.g., "nuttx").
-        apps_name: Name of the NuttX Apps directory (e.g., "nuttx-apps").
 
     Returns:
-        Optional[str]: Path to the NuttX workspace root directory if found,
-            None otherwise. Actually returns a Path object converted to string.
+        Tuple[Path, Path]: Path to the NuttX workspace root directory
+            and the NuttX Apps directory if found.
 
     Raises:
         FileNotFoundError: If the NuttX workspace is not found in the
             directory tree above the start path.
     """
     logger.debug(
-        f"Search NuttX root dir in {start_path} for {nuttx_name} and {apps_name}"
+        (
+            f"Search NuttX root dir in {start_path} for "
+            f"{NUTTX_DEFAULT_DIR_NAME} and {NUTTX_APPS_DIR_NAMES}"
+        )
     )
+    count = 0  # max 3 parent directories
+    max_count = 3
     path = start_path.resolve()
     logger.debug(f"Starting search from {path}")
 
-    if (path / nuttx_name).exists() and (path / apps_name).exists():
-        logger.debug(f"Already on nuttxspace root directory {path}")
-        return path
-
-    while path != path.parent:
-        if (path / nuttx_name).exists() and (path / apps_name).exists():
-            logger.debug(f"NuttX root directory found at {path}")
-            return path
-        path = path.parent
+    while count < max_count:
+        if (path / NUTTX_DEFAULT_DIR_NAME).exists():
+            logger.debug(
+                f"NuttX root directory found at {path / NUTTX_DEFAULT_DIR_NAME}"
+            )
+            for apps_dir_name in NUTTX_APPS_DIR_NAMES:
+                if (path / apps_dir_name).exists():
+                    logger.debug(
+                        f"NuttX apps directory found at {path / apps_dir_name}"
+                    )
+                    return path, apps_dir_name
+            raise FileNotFoundError(
+                (
+                    "NuttX Apps directory not found. "
+                    "Make sure apps directory is present under 'apps' or "
+                    "'nuttx-apps' subdirectory. "
+                    "Alternatively, run 'ntxbuild install' to download the repository."
+                )
+            )
+        else:
+            logger.debug(
+                (
+                    f"NuttX root directory not found at {path}, "
+                    "searching in parent directory"
+                )
+            )
+            path = path.parent
+        count += 1
 
     raise FileNotFoundError(
-        "NuttX workspace not found. "
-        "Make sure nuttx and apps directories are present or call "
-        "'ntxbuild install' to download."
-        " \nOr, check if --apps-dir and --nuttx-dir are correct."
+        (
+            "NuttX workspace not found. "
+            "Make sure nuttx and apps directories are present under the current "
+            "directory or call 'ntxbuild install' to download."
+        )
     )
 
 

@@ -36,8 +36,8 @@ cmake -B build -DBOARD_CONFIG=sim:nsh -GNinja
 
 ## Setting KConfig Options
 KConfig options are set through the `ConfigManager` class. When instantiated,
-it only requires the path to the NuttX workspace and it defaults to accessing
-NuttX on the `nuttx` directory.
+it requires the path to the NuttX workspace and the apps directory name.
+The NuttX directory name defaults to `nuttx` within the workspace.
 
 The methods are wrappers around the `kconfig-tweak` program. Menuconfig is
 available as well but it does require some tweaks to make it work underneath.

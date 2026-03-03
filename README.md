@@ -63,7 +63,8 @@ from ntxbuild.build import MakeBuilder
 current_dir = Path.cwd()
 
 # Use the Makefile-based builder
-builder = MakeBuilder(current_dir, "nuttx", "nuttx-apps")
+# First parameter is the nuttxspace path, second is the apps directory name
+builder = MakeBuilder(current_dir, "nuttx-apps")
 # Initialize the board/defconfig
 setup_result = builder.initialize("sim", "nsh")
 

@@ -24,7 +24,8 @@ from ntxbuild.build import MakeBuilder
 current_dir = Path.cwd()
 
 # Use the Makefile-based builder
-builder = MakeBuilder(current_dir, "nuttx", "nuttx-apps")
+# First parameter is the nuttxspace path, second is the apps directory name
+builder = MakeBuilder(current_dir, "nuttx-apps")
 # Initialize the board/defconfig (returns exit code)
 setup_result = builder.initialize("sim", "nsh")
 
@@ -54,7 +55,8 @@ from ntxbuild.build import CMakeBuilder
 current_dir = Path.cwd()
 
 # Use the CMake-based builder
-cmake_builder = CMakeBuilder(current_dir, "nuttx", "nuttx-apps")
+# First parameter is the nuttxspace path, second is the apps directory name
+cmake_builder = CMakeBuilder(current_dir, "nuttx-apps")
 # Initialize the build directory and configure for board:defconfig
 ret = cmake_builder.initialize("sim", "nsh")
 
@@ -75,10 +77,11 @@ from ntxbuild.config import ConfigManager
 
 current_dir = Path.cwd()
 
-builder = MakeBuilder(current_dir, "nuttx", "nuttx-apps")
+builder = MakeBuilder(current_dir, "nuttx-apps")
 builder.initialize("sim", "nsh")
 
-config = ConfigManager(current_dir)
+# ConfigManager requires nuttxspace_path and apps_dir
+config = ConfigManager(current_dir, "nuttx-apps")
 config.kconfig_enable("CONFIG_EXAMPLES_MOUNT")
 config.kconfig_set_str("CONFIG_EXAMPLES_HELLO_PROGNAME", "hello_app")
 
@@ -125,9 +128,9 @@ boards = nbf.set_arch("arm").boards
 for board in boards:
     print(f"Board: {board.name} (arch={board.arch} soc={board.soc})")
     for cfg in board.defconfigs:
-        print(f"  - defconfig: {d.name}")
+        print(f"  - defconfig: {cfg.name}")
         # optionally read the defconfig content
-        # print(d.content)
+        # print(cfg.content)
 
 # You can also find boards by soc or by exact board name
 boards_by_soc = nbf.set_soc("stm32").boards

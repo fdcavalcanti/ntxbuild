@@ -17,7 +17,7 @@ PARALLEL_NPROCS = 4
 
 @pytest.fixture(scope="module", autouse=True)
 def builder(nuttxspace_path):
-    builder = nuttx_builder(nuttxspace_path, "nuttx", "nuttx-apps")
+    builder = nuttx_builder(nuttxspace_path, "nuttx-apps")
     yield builder
     builder.distclean()
 
@@ -151,21 +151,21 @@ def test_invalid_nuttx_environment(tmp_path):
     nuttx_dir.mkdir()
 
     with pytest.raises(FileNotFoundError):
-        nuttx_builder(tmp_path, "nuttx", "nuttx-apps")
+        nuttx_builder(tmp_path, "nuttx-apps")
 
     # Create a dummy Makefile
     makefile = nuttx_dir / "Makefile"
     makefile.write_text("CONTENT")
 
     with pytest.raises(FileNotFoundError):
-        nuttx_builder(tmp_path, "nuttx", "nuttx-apps")
+        nuttx_builder(tmp_path, "nuttx-apps")
 
     # Create a dummy INVIOLABLES.md
     inviolables = nuttx_dir / "INVIOLABLES.md"
     inviolables.write_text("CONTENT")
 
     with pytest.raises(FileNotFoundError):
-        nuttx_builder(tmp_path, "nuttx", "nuttx-apps")
+        nuttx_builder(tmp_path, "nuttx-apps")
 
 
 def test_invalid_apps_environment(tmp_path):
@@ -177,7 +177,7 @@ def test_invalid_apps_environment(tmp_path):
     nuttx_dir.mkdir()
 
     with pytest.raises(FileNotFoundError):
-        nuttx_builder(tmp_path, "nuttx", "nuttx-apps")
+        nuttx_builder(tmp_path, "nuttx-apps")
 
     makefile = nuttx_dir / "Makefile"
     makefile.write_text("CONTENT")
@@ -186,17 +186,17 @@ def test_invalid_apps_environment(tmp_path):
 
     # Apps directory does not exist
     with pytest.raises(FileNotFoundError):
-        nuttx_builder(tmp_path, "nuttx", "nuttx-apps")
+        nuttx_builder(tmp_path, "nuttx-apps")
 
     apps_dir.mkdir()
 
     # Make.defs does not exist
     with pytest.raises(FileNotFoundError):
-        nuttx_builder(tmp_path, "nuttx", "nuttx-apps")
+        nuttx_builder(tmp_path, "nuttx-apps")
 
     # Make.defs exists
     make_defs = apps_dir / "Make.defs"
     make_defs.write_text("CONTENT")
 
-    builder = nuttx_builder(tmp_path, "nuttx", "nuttx-apps")
+    builder = nuttx_builder(tmp_path, "nuttx-apps")
     assert builder is not None

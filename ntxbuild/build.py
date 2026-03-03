@@ -6,6 +6,7 @@ import logging
 import subprocess
 from enum import Enum
 from pathlib import Path
+from typing import Union
 
 from . import utils
 
@@ -78,7 +79,7 @@ class BaseBuilder(abc.ABC):
     def __init__(
         self,
         nuttxspace_path: Path = None,
-        os_dir: str = utils.NUTTX_DEFAULT_DIR_NAME,
+        nuttx_dir: str = utils.NUTTX_DEFAULT_DIR_NAME,
         apps_dir: str = utils.NUTTX_APPS_DEFAULT_DIR_NAME,
     ):
         """Initialize the NuttX builder class.
@@ -86,13 +87,13 @@ class BaseBuilder(abc.ABC):
         Args:
             nuttxspace_path: Path to the NuttX repository workspace.
                 If None, must be set later. Defaults to None.
-            os_dir: Name of the NuttX OS directory within the workspace.
+            nuttx_dir: Name of the NuttX directory within the workspace.
                 Defaults to "nuttx".
             apps_dir: Name of the NuttX apps directory within the workspace.
                 Defaults to "nuttx-apps".
         """
         self.nuttxspace_path = nuttxspace_path
-        self.nuttx_path = nuttxspace_path / os_dir
+        self.nuttx_path = nuttxspace_path / nuttx_dir
         self.apps_path = nuttxspace_path / apps_dir
         self.no_stdout = False
         self.no_stderr = False
@@ -107,22 +108,74 @@ class BaseBuilder(abc.ABC):
 
     @abc.abstractmethod
     def build(self, parallel: int = None) -> subprocess.CompletedProcess:
+        """Build the NuttX project.
+
+        Args:
+            parallel: Number of parallel jobs to use for building.
+                If None, uses default parallelism. Defaults to None.
+
+        Returns:
+            subprocess.CompletedProcess: The result of the build command.
+                Check the returncode attribute to determine success (0) or failure.
+        """
         ...
 
     @abc.abstractmethod
     def clean(self) -> subprocess.CompletedProcess:
+        """Clean build artifacts.
+
+        Removes object files and other build artifacts, but preserves
+        configuration files.
+
+        Returns:
+            subprocess.CompletedProcess: The result of the clean command.
+                Check the returncode attribute to determine success (0) or failure.
+        """
         ...
 
     @abc.abstractmethod
-    def initialize(self) -> int:
+    def initialize(self, board: str, defconfig: str, extra_args: list[str] = []) -> int:
+        """Run NuttX setup commands.
+
+        Configures NuttX for the specified board and defconfig.
+
+        Args:
+            board: The board name (e.g., "stm32f4discovery").
+            defconfig: The defconfig name (e.g., "nsh").
+            extra_args: Additional arguments to pass to the configuration.
+                Defaults to empty list.
+
+        Returns:
+            int: Exit code of the configuration. Returns 0 on success.
+        """
         ...
 
     @abc.abstractmethod
-    def menuconfig(self) -> int:
+    def menuconfig(self) -> Union[int, subprocess.CompletedProcess]:
+        """Run menuconfig.
+
+        Opens the interactive menu configuration interface for NuttX.
+        This is a curses-based interface that allows interactive configuration
+        of NuttX build options.
+
+        Returns:
+            int or subprocess.CompletedProcess: The result of the menuconfig command.
+                Returns 0 on success, or a CompletedProcess object depending on
+                the implementation.
+        """
         ...
 
     @abc.abstractmethod
-    def distclean(self) -> subprocess.CompletedProcess:
+    def distclean(self) -> Union[subprocess.CompletedProcess, None]:
+        """Perform a distclean on the NuttX project.
+
+        This removes all generated files including configuration files.
+        Note: Not all build tools support distclean.
+
+        Returns:
+            subprocess.CompletedProcess or None: The result of the distclean command,
+                or None if not supported. May raise RuntimeError if not available.
+        """
         ...
 
     @property
@@ -152,16 +205,14 @@ class BaseBuilder(abc.ABC):
         """
         self.no_stderr = enable
 
-    def _validate_nuttx_environment(self) -> tuple[bool, str]:
+    def _validate_nuttx_environment(self) -> None:
         """Validate NuttX environment.
 
         Checks for required NuttX files (Makefile, INVIOLABLES.md) and
         validates the apps directory structure.
 
-        Returns:
-            tuple[bool, str]: A tuple containing:
-                - bool: True if environment is valid, False otherwise.
-                - str: Error message if validation failed, empty string if valid.
+        Raises:
+            FileNotFoundError: If required files or directories are not found.
         """
         logger.debug(
             f"Validating NuttX environment: nuttx_dir={self.nuttx_path},"
@@ -211,21 +262,21 @@ class MakeBuilder(BaseBuilder):
     def __init__(
         self,
         nuttxspace_path: Path,
-        os_dir: str = utils.NUTTX_DEFAULT_DIR_NAME,
         apps_dir: str = utils.NUTTX_APPS_DEFAULT_DIR_NAME,
+        nuttx_dir: str = utils.NUTTX_DEFAULT_DIR_NAME,
     ):
-        """Initialize the NuttX builder class.
+        """Initialize the NuttX Make builder class.
 
         Args:
             nuttxspace_path: Path to the NuttX repository workspace.
-            os_dir: Name of the NuttX OS directory within the workspace.
+            nuttx_dir: Name of the NuttX directory within the workspace.
                 Defaults to "nuttx".
             apps_dir: Name of the NuttX apps directory within the workspace.
                 Defaults to "nuttx-apps".
         """
         super().__init__(
             nuttxspace_path=nuttxspace_path,
-            os_dir=os_dir,
+            nuttx_dir=nuttx_dir,
             apps_dir=apps_dir,
         )
         self._build_tool = BuildTool.MAKE
@@ -381,22 +432,20 @@ class CMakeBuilder(BaseBuilder):
     def __init__(
         self,
         nuttxspace_path: Path,
-        os_dir: str = utils.NUTTX_DEFAULT_DIR_NAME,
         apps_dir: str = utils.NUTTX_APPS_DEFAULT_DIR_NAME,
+        nuttx_dir: str = utils.NUTTX_DEFAULT_DIR_NAME,
     ):
-        """Initialize the NuttX builder class.
+        """Initialize the NuttX CMake builder class.
 
         Args:
             nuttxspace_path: Path to the NuttX repository workspace.
-            os_dir: Name of the NuttX OS directory within the workspace.
-                Defaults to "nuttx".
             apps_dir: Name of the NuttX apps directory within the workspace.
                 Defaults to "nuttx-apps".
         """
         super().__init__(
             nuttxspace_path=nuttxspace_path,
-            os_dir=os_dir,
             apps_dir=apps_dir,
+            nuttx_dir=nuttx_dir,
         )
         self._build_tool = BuildTool.CMAKE
         self.use_ninja = True
@@ -431,13 +480,8 @@ class CMakeBuilder(BaseBuilder):
             subprocess.CompletedProcess: The result of the build command.
                 Check the returncode attribute to determine success (0) or failure.
         """
-        logger.info(f"Starting build with parallel={parallel}")
-        if parallel:
-            args = [f"-j{parallel}"]
-        else:
-            args = []
-
-        args.extend([CMakeAction.BUILD, self.build_dir])
+        logger.debug("Start CMake build")
+        args = [CMakeAction.BUILD, self.build_dir]
         return self._execute_cmake(args)
 
     def clean(self) -> subprocess.CompletedProcess:
@@ -501,8 +545,8 @@ class CMakeBuilder(BaseBuilder):
         Args:
             board: The board name (e.g., "stm32f4discovery").
             defconfig: The defconfig name (e.g., "nsh").
-            extra_args: Additional arguments to pass to CMake.
-                Defaults to empty list.
+            extra_args: Additional CMake arguments to pass to the configuration.
+                Currently not used in the implementation. Defaults to empty list.
 
         Returns:
             int: Exit code of the CMake configuration. Returns 0 on success.
@@ -551,7 +595,6 @@ class CMakeBuilder(BaseBuilder):
 
 def nuttx_builder(
     nuttxspace_path: Path,
-    os_dir: str = utils.NUTTX_DEFAULT_DIR_NAME,
     apps_dir: str = utils.NUTTX_APPS_DEFAULT_DIR_NAME,
     build_tool: BuildTool = BuildTool.MAKE,
 ):
@@ -559,20 +602,21 @@ def nuttx_builder(
 
     Args:
         nuttxspace_path: Path to the NuttX repository workspace.
-        os_dir: Name of the NuttX OS directory within the workspace.
-            Defaults to "nuttx".
         apps_dir: Name of the NuttX apps directory within the workspace.
             Defaults to "nuttx-apps".
         build_tool: Build tool to use (Make or CMake). Defaults to Make.
+
+    Returns:
+        MakeBuilder or CMakeBuilder: An instance of the appropriate builder class
+            based on the build_tool parameter.
+
+    Raises:
+        ValueError: If an unsupported build tool is specified.
     """
 
     if build_tool == BuildTool.MAKE:
-        return MakeBuilder(
-            nuttxspace_path=Path(nuttxspace_path), os_dir=os_dir, apps_dir=apps_dir
-        )
+        return MakeBuilder(nuttxspace_path=Path(nuttxspace_path), apps_dir=apps_dir)
     elif build_tool == BuildTool.CMAKE:
-        return CMakeBuilder(
-            nuttxspace_path=Path(nuttxspace_path), os_dir=os_dir, apps_dir=apps_dir
-        )
+        return CMakeBuilder(nuttxspace_path=Path(nuttxspace_path), apps_dir=apps_dir)
     else:
         raise ValueError(f"Unsupported build tool: {build_tool}")

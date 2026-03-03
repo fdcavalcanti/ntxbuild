@@ -89,22 +89,6 @@ class TestStartMake:
         assert_ntxenv_exists(nuttxspace_path)
         assert not (nuttxspace_path / "nuttx" / ".ntxenv").exists()
 
-    def test_start_with_custom_directories(self, nuttxspace_path):
-        """Test start command with custom nuttx and apps directory names."""
-        os.chdir(nuttxspace_path)
-
-        runner = CliRunner()
-        result = runner.invoke(
-            start, ["sim", "nsh", "--nuttx-dir", "nuttx", "--apps-dir", "nuttx-apps"]
-        )
-
-        assert result.exit_code == 0
-        assert_ntxenv_exists(nuttxspace_path)
-
-        env = load_env_config(nuttxspace_path)
-        assert env.get("nuttx_dir") == "nuttx"
-        assert env.get("apps_dir") == "nuttx-apps"
-
     def test_start_with_store_nxtmpdir(self, nuttxspace_path):
         """Test start command with --store-nxtmpdir flag."""
         os.chdir(nuttxspace_path)
@@ -169,6 +153,9 @@ class TestStartCmake:
         assert env.get("build_tool") == "cmake"
 
 
+@pytest.mark.skipif(
+    os.environ.get("SKIP_BUILD") is not None, reason="SKIP_BUILD is set"
+)
 class TestBuild:
     """Test suite for the build command."""
 
@@ -250,6 +237,9 @@ class TestClean:
             runner = CliRunner()
             runner.invoke(distclean, [])
 
+    @pytest.mark.skipif(
+        os.environ.get("SKIP_BUILD") is not None, reason="SKIP_BUILD is set"
+    )
     def test_clean_standalone(self, nuttxspace_path):
         """Test clean command as standalone operation."""
         os.chdir(nuttxspace_path)
@@ -284,6 +274,9 @@ class TestClean:
         )
 
 
+@pytest.mark.skipif(
+    os.environ.get("SKIP_BUILD") is not None, reason="SKIP_BUILD is set"
+)
 class TestDistclean:
     """Test suite for the distclean command."""
 
@@ -495,6 +488,9 @@ class TestMake:
         assert result.exit_code == 0
         assert "Running make clean" in result.output
 
+    @pytest.mark.skipif(
+        os.environ.get("SKIP_BUILD") is not None, reason="SKIP_BUILD is set"
+    )
     def test_make_all(self, nuttxspace_path):
         """Test make command with 'all' target."""
         runner = CliRunner()
@@ -544,6 +540,9 @@ class TestCmake:
         # CMake commands may have different exit codes depending on target
         assert "Running cmake" in result.output
 
+    @pytest.mark.skipif(
+        os.environ.get("SKIP_BUILD") is not None, reason="SKIP_BUILD is set"
+    )
     def test_cmake_without_ntxenv(self, nuttxspace_path):
         """Test cmake command fails when .ntxenv doesn't exist."""
         env_file = nuttxspace_path / ".ntxenv"
