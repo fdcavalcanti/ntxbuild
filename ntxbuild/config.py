@@ -91,14 +91,13 @@ class KconfigParser(kconfiglib.Kconfig):
     KCONFIG_FILE = "Kconfig"
     KCONFIG_CONFIG = ".config"
 
-    def __init__(self, nuttx_path: Path, apps_path: Path = None, warn: bool = False):
+    def __init__(self, nuttx_path: Path, apps_path: Path, warn: bool = False):
         """Initialize the Kconfig parser.
 
         Args:
             nuttx_path: Path to the NuttX source directory.
-            apps_path: Path to the NuttX apps directory. If None, defaults
-                to nuttx_path.parent / "nuttx-apps".
-            warn: Whether to show warnings. Defaults to True.
+            apps_path: Path to the NuttX apps directory.
+            warn: Whether to show warnings. Defaults to False.
 
         Raises:
             FileNotFoundError: If the apps_path does not exist.
@@ -106,14 +105,10 @@ class KconfigParser(kconfiglib.Kconfig):
                 initialized first).
         """
         self.nuttx_path = Path(nuttx_path)
+        self.apps_path = Path(apps_path)
         self.original_dir = os.getcwd()
         self.external_path = self.nuttx_path / "external"
         self.use_custom_ext_path = False
-
-        if not apps_path:
-            self.apps_path = self.nuttx_path.parent / "nuttx-apps"
-        if not self.apps_path.exists():
-            raise FileNotFoundError(f"Apps path found at {self.apps_path}")
 
         logger.debug(
             "Initializing Kconfig parser with Kconfig at "
@@ -162,20 +157,18 @@ class ConfigManager(KconfigParser):
     def __init__(
         self,
         nuttxspace_path: Path,
-        nuttx_dir: str = "nuttx",
-        apps_dir: str = None,
+        apps_dir: str,
+        nuttx_dir: str = utils.NUTTX_DEFAULT_DIR_NAME,
         warnings: bool = False,
     ):
         """Initialize the ConfigManager.
 
         Args:
             nuttxspace_path: Path to the NuttX repository workspace.
-            nuttx_dir: Name of the NuttX OS directory within the workspace.
-                Defaults to "nuttx".
             apps_dir: Name of the NuttX apps directory within the workspace.
-                If None, defaults to "nuttx-apps".
-                Defaults to None.
-            warnings: Whether to show warnings. Defaults to True.
+            nuttx_dir: Name of the NuttX directory within the workspace.
+                Defaults to "nuttx".
+            warnings: Whether to show warnings. Defaults to False.
 
         Raises:
             FileNotFoundError: If the apps directory does not exist.
@@ -184,12 +177,9 @@ class ConfigManager(KconfigParser):
         """
         self.nuttxspace_path = Path(nuttxspace_path)
         self.nuttx_path = self.nuttxspace_path / nuttx_dir
-
-        # Determine apps directory
-        if apps_dir:
-            self.apps_path = self.nuttxspace_path / apps_dir
-        else:
-            self.apps_path = self.nuttxspace_path / "nuttx-apps"
+        self.apps_path = self.nuttxspace_path / apps_dir
+        if not self.apps_path.exists():
+            raise FileNotFoundError(f"Apps path not found at {self.apps_path}")
 
         super().__init__(self.nuttx_path, self.apps_path, warn=warnings)
 

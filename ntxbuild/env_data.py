@@ -2,6 +2,8 @@ import configparser
 import logging
 from pathlib import Path
 
+from .utils import NUTTX_DEFAULT_DIR_NAME
+
 # Get logger for this module
 logger = logging.getLogger("ntxbuild.env_data")
 
@@ -36,13 +38,12 @@ def remove_from_general_section(env_file: Path, key: str) -> None:
 
 
 def create_base_env_file(
-    nuttxspace_path: Path, nuttx_dir: str, apps_dir: str, build_tool: str = "make"
+    nuttxspace_path: Path, apps_dir: str, build_tool: str = "make"
 ) -> None:
     """Save environment configuration to an INI file.
 
     Args:
         nuttxspace_path: Path to the NuttX workspace directory.
-        nuttx_dir: Name of the NuttX OS directory.
         apps_dir: Name of the NuttX apps directory.
         build_tool: Build tool name (default: 'make').
     """
@@ -52,7 +53,7 @@ def create_base_env_file(
         {
             "general": {
                 "nuttxspace_path": str(nuttxspace_path),
-                "nuttx_dir": nuttx_dir,
+                "nuttx_dir": NUTTX_DEFAULT_DIR_NAME,
                 "apps_dir": apps_dir,
                 "build_tool": build_tool,
             }
@@ -67,18 +68,22 @@ def create_base_env_file(
 
 
 def load_ntx_env(nuttxspace_path: Path) -> configparser.ConfigParser:
-    """Load environment configuration from the INI file and return a dict.
+    """Load environment configuration from the INI file.
 
     Args:
         nuttxspace_path: Path to the NuttX workspace directory.
 
-    Returns a dictionary with keys:
-      - 'nuttxspace_path' (Path)
-      - 'nuttx_dir' (str)
-      - 'apps_dir' (str)
-      - 'build_tool' (str)
+    Returns:
+        configparser.ConfigParser: A ConfigParser object containing the
+            environment configuration. The 'general' section contains:
+            - 'nuttxspace_path' (str)
+            - 'nuttx_dir' (str)
+            - 'apps_dir' (str)
+            - 'build_tool' (str)
 
-    Returns None if the file is missing or invalid.
+    Raises:
+        FileNotFoundError: If the .ntxenv file does not exist.
+        RuntimeError: If the file cannot be read or is missing required sections.
     """
     env_file = nuttxspace_path / ".ntxenv"
     if not env_file.exists():
