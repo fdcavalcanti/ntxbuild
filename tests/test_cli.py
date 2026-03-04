@@ -38,6 +38,14 @@ def load_env_config(nuttxspace_path: Path) -> configparser.SectionProxy:
     return env["general"]
 
 
+@pytest.fixture(autouse=True, scope="module")
+def cleanup_module(nuttxspace_path):
+    """Cleanup after all tests in this module."""
+    yield
+    os.chdir(nuttxspace_path)
+    subprocess.run(["make", "distclean"])
+
+
 class TestStartMake:
     """Test suite for the start command with Make build tool."""
 

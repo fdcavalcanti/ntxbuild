@@ -434,6 +434,7 @@ class CMakeBuilder(BaseBuilder):
         nuttxspace_path: Path,
         apps_dir: str = utils.NUTTX_APPS_DEFAULT_DIR_NAME,
         nuttx_dir: str = utils.NUTTX_DEFAULT_DIR_NAME,
+        build_dir: str = DEFAULT_BUILD_DIR,
     ):
         """Initialize the NuttX CMake builder class.
 
@@ -449,11 +450,9 @@ class CMakeBuilder(BaseBuilder):
         )
         self._build_tool = BuildTool.CMAKE
         self.use_ninja = True
-        self.build_dir = self.DEFAULT_BUILD_DIR
-
-        build_path = self.nuttx_path / self.build_dir
-        if not build_path.exists():
-            build_path.mkdir(parents=True, exist_ok=True)
+        self.build_dir = build_dir
+        self.nuttx_path = self.nuttxspace_path / nuttx_dir
+        self.build_path = self.nuttx_path / self.build_dir
 
     def cmake(self, command: str) -> subprocess.CompletedProcess:
         """Run any CMake command inside NuttX directory.
