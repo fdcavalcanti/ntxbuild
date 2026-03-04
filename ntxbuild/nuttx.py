@@ -51,6 +51,7 @@ class Board:
     name: str = None
     arch: str = None
     soc: str = None
+    cmake: bool = False
     defconfigs: list[Defconfig] = field(default_factory=list)
     """Representation of a NuttX board directory.
 
@@ -66,6 +67,7 @@ class Board:
             provided).
         soc: SoC/chip name (inferred from path.parents[0].stem if not
             provided).
+        cmake: Whether the board supports CMake.
         defconfigs: List of `Defconfig` objects found under the
             `configs/` subdirectory.
     """
@@ -77,6 +79,11 @@ class Board:
             self.arch = self.path.parents[1].stem
         if not self.soc:
             self.soc = self.path.parents[0].stem
+        if not self.cmake:
+            files = [
+                f.name == "CMakeLists.txt" for f in self.path.iterdir() if f.is_file()
+            ]
+            self.cmake = any(files)
         self._parse_defconfigs()
 
     def _parse_defconfigs(self):

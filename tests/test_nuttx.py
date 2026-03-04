@@ -111,3 +111,27 @@ def test_board_get_defconfig(nuttxspace_path: Path):
     # Test getting a non-existent defconfig
     non_existent = board.get_defconfig("nonexistent_defconfig_xyz")
     assert non_existent is None
+
+
+@pytest.mark.parametrize("board_name", ["nucleo-f746zg", "a2g-tc397-5v-tft", "sim"])
+def test_board_supports_cmake(nuttxspace_path: Path, board_name: str):
+    """Test Board.cmake property to check CMake support."""
+    nuttx_repo = nuttxspace_path / "nuttx"
+    nbe = NuttxBoardExplorer(nuttx_path=nuttx_repo)
+    nbe.set_board(board_name)
+    board = nbe.boards[0]
+
+    assert board.cmake is True, f"Board {board.path} should support CMake"
+
+
+@pytest.mark.parametrize(
+    "board_name", ["arduino-mega2560", "pic32mx7mmb", "esp32-devkitc"]
+)
+def test_board_does_not_support_cmake(nuttxspace_path: Path, board_name: str):
+    """Test Board.cmake property to check CMake support."""
+    nuttx_repo = nuttxspace_path / "nuttx"
+    nbe = NuttxBoardExplorer(nuttx_path=nuttx_repo)
+    nbe.set_board(board_name)
+    board = nbe.boards[0]
+
+    assert board.cmake is False, f"Board {board.path} should not support CMake"
