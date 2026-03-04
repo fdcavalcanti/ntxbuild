@@ -332,7 +332,12 @@ def kconfig(
     """
     env = prepare_env()
     try:
-        config_manager = ConfigManager(env.get("nuttxspace_path"), env.get("apps_dir"))
+        config_manager = ConfigManager(
+            env.get("nuttxspace_path"),
+            env.get("apps_dir"),
+            env.get("nuttx_dir"),
+            env.get("build_tool"),
+        )
 
         if apply:
             config_manager.kconfig_apply_changes()
