@@ -679,7 +679,7 @@ class ConfigManager:
             raise RuntimeError(f".config file not found at {self.build_path}")
 
         if self.build_tool == BuildTool.MAKE:
-            self._manager = KconfigParser(self.nuttxspace_path, apps_dir)
+            self._manager = KconfigParser(self.nuttxspace_path, apps_dir, nuttx_dir)
             logger.debug("Using kconfiglib for config management (Make build)")
         elif self.build_tool == BuildTool.CMAKE:
             self._manager = KconfigTweak(self.build_path)
