@@ -428,6 +428,7 @@ class CMakeBuilder(BaseBuilder):
 
     DEFAULT_BUILD_DIR = "build"
     NINJA_FLAG = "-GNinja"
+    NXTMPDIR_FLAG = "-DNXTMPDIR=on"
 
     def __init__(
         self,
@@ -453,6 +454,16 @@ class CMakeBuilder(BaseBuilder):
         self.build_dir = build_dir
         self.nuttx_path = self.nuttxspace_path / nuttx_dir
         self.build_path = self.nuttx_path / self.build_dir
+        self.nxtmpdir = False
+
+    def use_nxtmpdir(self, enable: bool) -> None:
+        """Enable or disable using the NuttX tmpdir for the build.
+
+        Args:
+            enable: If True, use the NuttX tmpdir for the build.
+                If False, use the default build directory.
+        """
+        self.nxtmpdir = enable
 
     def cmake(self, command: str) -> subprocess.CompletedProcess:
         """Run any CMake command inside NuttX directory.
@@ -557,8 +568,12 @@ class CMakeBuilder(BaseBuilder):
             CMakeAction.BUILD_PATH,
             self.build_dir,
             board_config,
-            self.NINJA_FLAG if self.use_ninja else "",
         ]
+
+        cmd_list.append(self.NINJA_FLAG) if self.use_ninja else None
+        cmd_list.append(
+            self.NXTMPDIR_FLAG
+        ) if self.nxtmpdir or "-S" in extra_args else None
 
         ret = self._execute_cmake(cmd_list)
         return ret.returncode

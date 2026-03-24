@@ -461,20 +461,26 @@ class KconfigTweak:
     options for NuttX builds using the kconfig-tweak tool.
     """
 
-    def __init__(self, nuttx_path: Path):
+    def __init__(self, nuttx_path: Path, build_path: Path):
         """Initialize the KconfigTweak class.
 
         Args:
             nuttx_path: Path to the NuttX repository.
                 If using CMake, should be the build directory.
+            build_path: Path to the build directory. When using Make, it
+                is the same as nuttx_path.
         """
         self.nuttx_path = nuttx_path
-        self.config_file = Path(self.nuttx_path) / ".config"
+        self.build_path = build_path
+        self.config_file = Path(self.build_path) / ".config"
 
         if not self.config_file.exists():
             raise RuntimeError(f".config file not found at {self.config_file}")
 
         self.content = self.config_file.read_text().splitlines()
+        logger.debug(
+            f"KconfigTweak init: nuttx: {self.nuttx_path}, build_: {self.build_path}"
+        )
 
     def kconfig_read(self, config: str) -> str:
         """Read the current state of a Kconfig option.
@@ -493,7 +499,7 @@ class KconfigTweak:
         """
         self._check_config_exists(config)
         result = utils.run_kconfig_command(
-            [KCONFIG_TWEAK, KconfigTweakAction.STATE, config], cwd=self.nuttx_path
+            [KCONFIG_TWEAK, KconfigTweakAction.STATE, config], cwd=self.build_path
         )
         value = result.stdout.strip()
         logger.info(f"Kconfig read: {config}={value}")
@@ -512,7 +518,7 @@ class KconfigTweak:
         """
         self._check_config_exists(config)
         result = utils.run_kconfig_command(
-            [KCONFIG_TWEAK, KconfigTweakAction.ENABLE, config], cwd=self.nuttx_path
+            [KCONFIG_TWEAK, KconfigTweakAction.ENABLE, config], cwd=self.build_path
         )
         return result.returncode
 
@@ -528,7 +534,7 @@ class KconfigTweak:
         """
         self._check_config_exists(config)
         result = utils.run_kconfig_command(
-            [KCONFIG_TWEAK, KconfigTweakAction.DISABLE, config], cwd=self.nuttx_path
+            [KCONFIG_TWEAK, KconfigTweakAction.DISABLE, config], cwd=self.build_path
         )
         return result.returncode
 
@@ -541,7 +547,7 @@ class KconfigTweak:
         Returns:
             int: Returns 0 on success, non-zero on failure.
         """
-        result = utils.run_make_command(["make", "olddefconfig"], cwd=self.nuttx_path)
+        result = utils.run_make_command(["make", "olddefconfig"], cwd=self.build_path)
         if result.returncode != 0:
             logger.error("Kconfig change apply may have failed")
         else:
@@ -567,7 +573,7 @@ class KconfigTweak:
         self._check_config_exists(config)
         result = utils.run_kconfig_command(
             [KCONFIG_TWEAK, KconfigTweakAction.SET_VAL, config, str(value)],
-            cwd=self.nuttx_path,
+            cwd=self.build_path,
         )
         logger.info(f"Kconfig set value: {config}={value}")
         return result.returncode
@@ -586,13 +592,13 @@ class KconfigTweak:
         self._check_config_exists(config)
         result = utils.run_kconfig_command(
             [KCONFIG_TWEAK, KconfigTweakAction.SET_STR, config, value],
-            cwd=self.nuttx_path,
+            cwd=self.build_path,
         )
         logger.info(f"Kconfig set string: {config}={value}")
         return result.returncode
 
     def kconfig_merge_config_file(
-        self, source_file: str, config_file: str = None
+        self, source_file: str, config_file: str = ".config"
     ) -> int:
         """Merge a Kconfig file into the current configuration.
 
@@ -613,14 +619,11 @@ class KconfigTweak:
         if not source_file:
             raise ValueError("Source file is required")
 
-        if not config_file:
-            config_file = (Path(self.nuttx_path) / ".config").as_posix()
-
-        logging.info(f"Kconfig merge config file: {source_file} into {config_file}")
+        logger.info(f"Kconfig merge config file: {source_file} into {config_file}")
 
         source_file = Path(source_file).resolve().as_posix()
         result = utils.run_kconfig_command(
-            [KCONFIG_MERGE, "-m", config_file, source_file], cwd=self.nuttx_path
+            [KCONFIG_MERGE, "-m", config_file, source_file], cwd=self.build_path
         )
         return result.returncode
 
@@ -682,7 +685,7 @@ class ConfigManager:
             self._manager = KconfigParser(self.nuttxspace_path, apps_dir, nuttx_dir)
             logger.debug("Using kconfiglib for config management (Make build)")
         elif self.build_tool == BuildTool.CMAKE:
-            self._manager = KconfigTweak(self.build_path)
+            self._manager = KconfigTweak(self.nuttx_path, self.build_path)
             logger.debug("Using kconfig-tweak for config management (CMake build)")
         else:
             raise ValueError(f"Invalid build tool: {build_tool}")

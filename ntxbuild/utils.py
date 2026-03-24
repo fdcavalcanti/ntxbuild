@@ -88,7 +88,7 @@ def run_make_command(
         subprocess.Popen: The process object with returncode attribute.
             Check returncode to determine success (0) or failure (non-zero).
     """
-    logger.debug(f"Running make command: {cmd} :: {' '.join(cmd)} in cwd={cwd}")
+    logger.debug(f"Execute: {cmd} in cwd={cwd}")
 
     # Use Popen for real-time output and binary mode to
     # preserve control characters
@@ -144,9 +144,11 @@ def run_make_command(
     # Read any remaining output and print it
     remaining_stdout, remaining_stderr = process.communicate()
     if remaining_stdout:
-        print(remaining_stdout.decode("utf-8", errors="replace"), end="", flush=True)
+        logger.error(
+            remaining_stdout.decode("utf-8", errors="replace"), end="", flush=True
+        )
     if remaining_stderr:
-        print(
+        logger.error(
             remaining_stderr.decode("utf-8", errors="replace"),
             end="",
             file=sys.stderr,
@@ -157,6 +159,7 @@ def run_make_command(
         logger.error(
             f"Make command ({cmd}) failed with return code: {process.returncode}"
         )
+        return process
 
     logger.debug(f"Make command succeeded with return code: {process.returncode}")
     return process
@@ -229,6 +232,8 @@ def run_kconfig_command(
         return result
     except subprocess.CalledProcessError as e:
         logger.error(f"Kconfig command failed: {' '.join(cmd)}, error: {e}")
+        logger.error(e.stdout)
+        logger.error(e.stderr)
         raise
 
 
