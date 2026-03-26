@@ -461,7 +461,9 @@ class KconfigTweak:
     options for NuttX builds using the kconfig-tweak tool.
     """
 
-    def __init__(self, nuttx_path: Path, build_path: Path):
+    def __init__(
+        self, nuttx_path: Path, build_path: Path, build_tool: BuildTool = BuildTool.MAKE
+    ):
         """Initialize the KconfigTweak class.
 
         Args:
@@ -473,6 +475,7 @@ class KconfigTweak:
         self.nuttx_path = nuttx_path
         self.build_path = build_path
         self.config_file = Path(self.build_path) / ".config"
+        self.build_tool = build_tool
 
         if not self.config_file.exists():
             raise RuntimeError(f".config file not found at {self.config_file}")
@@ -538,7 +541,7 @@ class KconfigTweak:
         )
         return result.returncode
 
-    def kconfig_apply_changes(self) -> int:
+    def kconfig_apply_changes(self, build_dir: str = "build") -> int:
         """Apply Kconfig changes by writing the configuration.
 
         This method runs 'make olddefconfig' to apply any pending
@@ -547,7 +550,15 @@ class KconfigTweak:
         Returns:
             int: Returns 0 on success, non-zero on failure.
         """
-        result = utils.run_make_command(["make", "olddefconfig"], cwd=self.build_path)
+        if self.build_tool == BuildTool.MAKE:
+            result = utils.run_make_command(
+                ["make", "olddefconfig"], cwd=self.nuttx_path
+            )
+        else:
+            result = utils.run_make_command(
+                ["cmake", "--build", build_dir, "-t", "olddefconfig"],
+                cwd=self.nuttx_path,
+            )
         if result.returncode != 0:
             logger.error("Kconfig change apply may have failed")
         else:
@@ -685,7 +696,9 @@ class ConfigManager:
             self._manager = KconfigParser(self.nuttxspace_path, apps_dir, nuttx_dir)
             logger.debug("Using kconfiglib for config management (Make build)")
         elif self.build_tool == BuildTool.CMAKE:
-            self._manager = KconfigTweak(self.nuttx_path, self.build_path)
+            self._manager = KconfigTweak(
+                self.nuttx_path, self.build_path, self.build_tool
+            )
             logger.debug("Using kconfig-tweak for config management (CMake build)")
         else:
             raise ValueError(f"Invalid build tool: {build_tool}")
