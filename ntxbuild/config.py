@@ -312,7 +312,7 @@ class KconfigParser(kconfiglib.Kconfig):
         try:
             ret = self.write_config()
             logger.info(f"Kconfig apply changes: {ret}")
-            return ret
+            return 0
         except Exception as e:
             self.environment_context.restore_environment()
             raise e
