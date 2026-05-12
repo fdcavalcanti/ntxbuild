@@ -82,7 +82,10 @@ def test_merge_config(nuttxspace_path, config_manager):
     # config_manager.kconfig_apply_changes()
 
     new_config_manager = ConfigManager(
-        nuttxspace_path, NUTTX_APPS_DIR, build_tool=BuildTool.CMAKE
+        nuttxspace_path,
+        NUTTX_APPS_DIR,
+        build_tool=config_manager.build_tool,
+        build_dir=config_manager.build_dir,
     )
 
     value = new_config_manager.kconfig_read("CONFIG_NSH_SYSINITSCRIPT")
@@ -169,8 +172,6 @@ def test_kconfig_set_value_invalid_int(config_manager):
 def test_kconfig_set_value_wrong_type(config_manager):
     """Test ValueError when setting value on non-INT/HEX config option."""
     # Try to set a value on a STRING config
-    if config_manager.build_tool == BuildTool.CMAKE:
-        pytest.skip("No support on CMake build tool")
     with pytest.raises(ValueError, match="requires a numerical or hexadecimal input"):
         config_manager.kconfig_set_value(STR_CONFIGS[0], "123")
 
@@ -183,10 +184,6 @@ def test_kconfig_set_value_assignable_symbol(config_manager):
     not at assignable check. Testing assignable check for INT/HEX would
     require finding a specific assignable INT/HEX symbol which is fragile.
     """
-    if config_manager.build_tool == BuildTool.CMAKE:
-        pytest.skip(
-            "CMake build tool does not support setting value on assignable symbol"
-        )
     # Try to set a value on a BOOL config (which is assignable)
     # This will fail at type check since BOOL is not INT/HEX
     with pytest.raises(ValueError, match="requires a numerical or hexadecimal input"):
@@ -196,8 +193,6 @@ def test_kconfig_set_value_assignable_symbol(config_manager):
 @pytest.mark.usefixtures("setup_board_sim_environment")
 def test_kconfig_set_value_int_with_hex(config_manager):
     """Test ValueError when setting INT config with hexadecimal value."""
-    if config_manager.build_tool == BuildTool.CMAKE:
-        pytest.skip("No support on CMake build tool")
     with pytest.raises(ValueError, match="requires a int input, not hexadecimal"):
         config_manager.kconfig_set_value(NUM_CONFIGS[0], "0x10")
 
@@ -205,10 +200,6 @@ def test_kconfig_set_value_int_with_hex(config_manager):
 @pytest.mark.usefixtures("setup_board_sim_environment")
 def test_kconfig_set_value_hex_without_prefix(config_manager):
     """Test ValueError when setting HEX config without 0x prefix."""
-    if config_manager.build_tool == BuildTool.CMAKE:
-        pytest.skip(
-            "CMake build tool does not support setting HEX config without 0x prefix"
-        )
     with pytest.raises(ValueError, match="requires a hexadecimal input"):
         config_manager.kconfig_set_value(HEX_CONFIGS[0], "10")
 
@@ -216,9 +207,6 @@ def test_kconfig_set_value_hex_without_prefix(config_manager):
 @pytest.mark.usefixtures("setup_board_sim_environment")
 def test_kconfig_set_str_wrong_type(config_manager):
     """Test ValueError when setting string on non-STRING config option."""
-    if config_manager.build_tool == BuildTool.CMAKE:
-        pytest.skip("No support on CMake build tool")
-    # Try to set a string on a BOOL config
     with pytest.raises(ValueError, match="requires a string input"):
         config_manager.kconfig_set_str(BOOL_CONFIGS[0], "test_value")
 
