@@ -8,6 +8,7 @@ configuration options.
 
 import logging
 import os
+from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import wraps
 from pathlib import Path
@@ -43,21 +44,41 @@ class KconfigEnvironmentContext:
     externaldir: Path
     kconfig_config: Path = Path(".config")
 
-    def set_environment(self):
-        """Set environment variables for Kconfig operations."""
-        os.environ["BINDIR"] = str(self.bindir)
-        os.environ["APPSBINDIR"] = str(self.appsbindir)
-        os.environ["APPSDIR"] = str(self.appsdir)
-        os.environ["EXTERNALDIR"] = str(self.externaldir)
-        os.environ["KCONFIG_CONFIG"] = str(self.kconfig_config)
+    def _kconfig_env_vars(self) -> dict[str, str]:
+        return {
+            "BINDIR": str(self.bindir),
+            "APPSBINDIR": str(self.appsbindir),
+            "APPSDIR": str(self.appsdir),
+            "EXTERNALDIR": str(self.externaldir),
+            "KCONFIG_CONFIG": str(self.kconfig_config),
+        }
 
-    def restore_environment(self):
-        """Restore environment by removing Kconfig-related variables."""
-        os.unsetenv("BINDIR")
-        os.unsetenv("APPSBINDIR")
-        os.unsetenv("APPSDIR")
-        os.unsetenv("EXTERNALDIR")
-        os.unsetenv("KCONFIG_CONFIG")
+    @contextmanager
+    def scoped_environment(self):
+        """Temporarily set Kconfig environment variables and restore them."""
+        env_vars = self._kconfig_env_vars()
+        previous = {key: os.environ.get(key) for key in env_vars}
+
+        os.environ.update(env_vars)
+        try:
+            yield
+        finally:
+            for key, previous_value in previous.items():
+                if previous_value is None:
+                    os.environ.pop(key, None)
+                else:
+                    os.environ[key] = previous_value
+
+
+@contextmanager
+def scoped_working_directory(path: Path):
+    """Temporarily switch process working directory and restore it."""
+    previous_cwd = Path.cwd()
+    os.chdir(path)
+    try:
+        yield
+    finally:
+        os.chdir(previous_cwd)
 
 
 def kconfig_chdir(f):
@@ -76,14 +97,9 @@ def kconfig_chdir(f):
 
     @wraps(f)
     def wrap(self, *args, **kwargs):
-        self.environment_context.set_environment()
-        try:
-            ret = f(self, *args, **kwargs)
-        except Exception as e:
-            self.environment_context.restore_environment()
-            raise e
-        self.environment_context.restore_environment()
-        return ret
+        with scoped_working_directory(self.nuttx_path):
+            with self.environment_context.scoped_environment():
+                return f(self, *args, **kwargs)
 
     return wrap
 
@@ -413,9 +429,9 @@ class ConfigManager:
             self.build_tool == BuildTool.MAKE
             and (self.nuttx_path / "external" / "Kconfig").is_file()
         ):
-            external_path = "external"
+            external_path = Path("external")
         else:
-            external_path = "dummy"
+            external_path = Path("dummy")
 
         if not self.nuttxspace_path.exists():
             raise FileNotFoundError(f"Nuttxspace not found at {self.nuttxspace_path}")
@@ -445,32 +461,24 @@ class ConfigManager:
                 externaldir=external_path,
             )
 
-        os.chdir(self.nuttx_path)
-        self.environment_context.set_environment()
-        try:
-            self._manager = KconfigParser(
-                kconfig_file=self.nuttx_path / self.KCONFIG_FILE,
-                config_file=build_path / self.CONFIG_FILE,
-            )
-        except Exception as e:
-            self.environment_context.restore_environment()
-            raise e
-        self.environment_context.restore_environment()
+        with scoped_working_directory(self.nuttx_path):
+            with self.environment_context.scoped_environment():
+                self._manager = KconfigParser(
+                    kconfig_file=self.nuttx_path / self.KCONFIG_FILE,
+                    config_file=build_path / self.CONFIG_FILE,
+                )
 
     @kconfig_chdir
     def kconfig_read(self, config: str) -> str:
-        config = config.removeprefix("CONFIG_")
-        return self._manager.kconfig_read(config)
+        return self._manager.kconfig_read(self._normalize_config_name(config))
 
     @kconfig_chdir
     def kconfig_enable(self, config: str) -> int:
-        config = config.removeprefix("CONFIG_")
-        return self._manager.kconfig_enable(config)
+        return self._manager.kconfig_enable(self._normalize_config_name(config))
 
     @kconfig_chdir
     def kconfig_disable(self, config: str) -> int:
-        config = config.removeprefix("CONFIG_")
-        return self._manager.kconfig_disable(config)
+        return self._manager.kconfig_disable(self._normalize_config_name(config))
 
     @kconfig_chdir
     def kconfig_apply_changes(self) -> int:
@@ -484,19 +492,19 @@ class ConfigManager:
         )
         try:
             int(value, 0)
-        except ValueError:
+        except ValueError as exc:
             raise ValueError(
                 "Set value must be string representation of a numerical or "
                 "hexadecimal value"
-            )
+            ) from exc
 
-        config = config.removeprefix("CONFIG_")
-        return self._manager.kconfig_set_value(config, value)
+        return self._manager.kconfig_set_value(
+            self._normalize_config_name(config), value
+        )
 
     @kconfig_chdir
     def kconfig_set_str(self, config: str, value: str) -> int:
-        config = config.removeprefix("CONFIG_")
-        return self._manager.kconfig_set_str(config, value)
+        return self._manager.kconfig_set_str(self._normalize_config_name(config), value)
 
     def kconfig_menuconfig(self) -> int:
         logger.debug("Opening menuconfig")
@@ -511,3 +519,7 @@ class ConfigManager:
     @kconfig_chdir
     def kconfig_merge_config_file(self, source_file: str) -> int:
         return self._manager.kconfig_merge_config_file(source_file)
+
+    @staticmethod
+    def _normalize_config_name(config: str) -> str:
+        return config.removeprefix("CONFIG_")

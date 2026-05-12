@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import pytest
@@ -23,6 +24,13 @@ TEST_STR_VALUE = "test_123456"
 TEST_NUM_VALUE = 50
 
 NUTTX_APPS_DIR = "nuttx-apps"
+KCONFIG_ENV_KEYS = (
+    "BINDIR",
+    "APPSBINDIR",
+    "APPSDIR",
+    "EXTERNALDIR",
+    "KCONFIG_CONFIG",
+)
 
 
 @pytest.mark.usefixtures("setup_board_sim_environment")
@@ -223,3 +231,68 @@ def test_kconfig_merge_config_file_none_source(config_manager):
     """Test ValueError when merging config with None source file."""
     with pytest.raises(ValueError, match="Source file is required"):
         config_manager.kconfig_merge_config_file(None)
+
+
+@pytest.mark.usefixtures("setup_board_sim_environment")
+def test_config_manager_constructor_does_not_change_cwd(
+    nuttxspace_path, config_manager
+):
+    original_cwd = Path.cwd()
+
+    ConfigManager(
+        nuttxspace_path,
+        NUTTX_APPS_DIR,
+        build_tool=config_manager.build_tool,
+        build_dir=config_manager.build_dir,
+    )
+
+    assert Path.cwd() == original_cwd
+
+
+@pytest.mark.usefixtures("setup_board_sim_environment")
+def test_kconfig_operation_does_not_change_cwd(config_manager):
+    original_cwd = Path.cwd()
+    config_manager.kconfig_read("CONFIG_EXAMPLES_HELLO")
+    assert Path.cwd() == original_cwd
+
+
+@pytest.mark.usefixtures("setup_board_sim_environment")
+def test_kconfig_environment_restored_when_variables_were_absent(
+    config_manager, monkeypatch
+):
+    for key in KCONFIG_ENV_KEYS:
+        monkeypatch.delenv(key, raising=False)
+
+    config_manager.kconfig_read("CONFIG_EXAMPLES_HELLO")
+
+    for key in KCONFIG_ENV_KEYS:
+        assert key not in os.environ
+
+
+@pytest.mark.usefixtures("setup_board_sim_environment")
+def test_kconfig_environment_restored_to_existing_values(config_manager, monkeypatch):
+    expected_values = {}
+    for key in KCONFIG_ENV_KEYS:
+        expected_values[key] = f"sentinel-{key}"
+        monkeypatch.setenv(key, expected_values[key])
+
+    config_manager.kconfig_read("CONFIG_EXAMPLES_HELLO")
+
+    for key, expected in expected_values.items():
+        assert os.environ[key] == expected
+
+
+@pytest.mark.usefixtures("setup_board_sim_environment")
+def test_kconfig_environment_and_cwd_restored_on_exception(config_manager, monkeypatch):
+    original_cwd = Path.cwd()
+    expected_values = {}
+    for key in KCONFIG_ENV_KEYS:
+        expected_values[key] = f"sentinel-{key}"
+        monkeypatch.setenv(key, expected_values[key])
+
+    with pytest.raises(KeyError, match="Kconfig option 'NONEXISTENT_CONFIG' not found"):
+        config_manager.kconfig_read("CONFIG_NONEXISTENT_CONFIG")
+
+    assert Path.cwd() == original_cwd
+    for key, expected in expected_values.items():
+        assert os.environ[key] == expected
