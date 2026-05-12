@@ -63,12 +63,14 @@ warn_unused_configs = true
 disallow_untyped_defs = true
 
 [tool.pytest.ini_options]
-addopts = "--cov=ntxbuild --cov-report html:cov_html"
+addopts = "--cov=ntxbuild --cov-report html:cov_html --junit-xml=junit.xml"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 norecursedirs = ["nuttxspace"]
+junit_family = "xunit2"
+junit_logging = "all"
 
 [tool.setuptools_scm]
 write_to = "ntxbuild/_version.py"

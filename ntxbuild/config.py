@@ -445,7 +445,7 @@ class ConfigManager:
                 externaldir=external_path,
             )
 
-        os.chdir(build_path)
+        os.chdir(self.nuttx_path)
         self.environment_context.set_environment()
         try:
             self._manager = KconfigParser(
