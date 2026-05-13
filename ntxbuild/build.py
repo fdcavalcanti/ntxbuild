@@ -53,7 +53,6 @@ class MakeAction(str, Enum):
     DISTCLEAN = "distclean"
     FLASH = "flash"
     HOST_INFO = "host_info"
-    MENUCONFIG = "menuconfig"
     OLDCONFIG = "oldconfig"
     OLDDEFCONFIG = "olddefconfig"
     SCHED_CLEAN = "sched_clean"
@@ -72,7 +71,6 @@ class CMakeAction(str, Enum):
     BUILD = "--build"
     TARGET = "--target"
     CLEAN = "clean"
-    MENUCONFIG = "menuconfig"
 
 
 class BaseBuilder(abc.ABC):
@@ -147,21 +145,6 @@ class BaseBuilder(abc.ABC):
 
         Returns:
             int: Exit code of the configuration. Returns 0 on success.
-        """
-        ...
-
-    @abc.abstractmethod
-    def menuconfig(self) -> Union[int, subprocess.CompletedProcess]:
-        """Run menuconfig.
-
-        Opens the interactive menu configuration interface for NuttX.
-        This is a curses-based interface that allows interactive configuration
-        of NuttX build options.
-
-        Returns:
-            int or subprocess.CompletedProcess: The result of the menuconfig command.
-                Returns 0 on success, or a CompletedProcess object depending on
-                the implementation.
         """
         ...
 
@@ -256,7 +239,7 @@ class MakeBuilder(BaseBuilder):
     """Main builder class for NuttX projects.
 
     This class allows you to trigger make commands, setup NuttX for a
-    board:config, build, distclean, clean, menuconfig, etc.
+    board:config, build, distclean, clean, etc.
     """
 
     def __init__(
@@ -286,7 +269,7 @@ class MakeBuilder(BaseBuilder):
 
         Args:
             command: The make command to run. It can be any make command,
-                such as "all", "clean", "distclean", "menuconfig", etc.
+                such as "all", "clean", "distclean", etc.
                 Multiple arguments can be space-separated.
 
         Returns:
@@ -384,22 +367,6 @@ class MakeBuilder(BaseBuilder):
         logger.info("NuttX setup completed successfully")
         return config_result
 
-    def menuconfig(self) -> subprocess.CompletedProcess:
-        """Run menuconfig using Make.
-
-        Opens the interactive menu configuration interface for NuttX.
-        This is a curses-based interface that allows interactive configuration
-        of NuttX build options.
-
-        Returns:
-            subprocess.CompletedProcess: The result of the menuconfig command.
-                Check the returncode attribute to determine success (0) or failure.
-        """
-        logger.info("Running menuconfig")
-        return utils.run_curses_command(
-            [BuildTool.MAKE, MakeAction.MENUCONFIG], cwd=self.nuttx_path
-        )
-
     def _execute_make(self, args: list[str]) -> subprocess.CompletedProcess:
         """Helper method to execute Make commands.
 
@@ -423,7 +390,7 @@ class CMakeBuilder(BaseBuilder):
     """Main builder class for NuttX projects using CMake.
 
     This class allows you to trigger CMake commands, setup NuttX for a
-    board:config, build, clean, menuconfig, etc.
+    board:config, build, clean, etc.
     """
 
     DEFAULT_BUILD_DIR = "build"
@@ -512,26 +479,6 @@ class CMakeBuilder(BaseBuilder):
             CMakeAction.CLEAN,
         ]
         return self._execute_cmake(cmd_list)
-
-    def menuconfig(self) -> int:
-        """Run menuconfig using CMake.
-
-        Opens the interactive menu configuration interface for NuttX.
-        This is a curses-based interface that allows interactive configuration
-        of NuttX build options.
-
-        Returns:
-            int: Exit code of the menuconfig command. Returns 0 on success.
-        """
-        logger.info("Running menuconfig")
-        cmd_list = [
-            BuildTool.CMAKE,
-            CMakeAction.BUILD,
-            self.build_dir,
-            CMakeAction.TARGET,
-            CMakeAction.MENUCONFIG,
-        ]
-        return utils.run_curses_command(cmd_list, cwd=self.nuttx_path)
 
     def distclean(self) -> None:
         """Perform a distclean on the NuttX project using CMake.

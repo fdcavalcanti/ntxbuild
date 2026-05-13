@@ -39,8 +39,8 @@ KConfig options are set through the `ConfigManager` class. When instantiated,
 it requires the path to the NuttX workspace and the apps directory name.
 The NuttX directory name defaults to `nuttx` within the workspace.
 
-The methods are wrappers around the `kconfig-tweak` program. Menuconfig is
-available as well but it does require some tweaks to make it work underneath.
+Underneath this feature, kconfiglib is used as the framework for managing KConfig, including
+menuconfig interface.
 
 ## Building
 Building is still done by the `NuttXBuilder` class. The method `build` triggers

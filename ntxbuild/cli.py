@@ -502,22 +502,34 @@ def cmake(ctx):
 
 
 @main.command()
-@click.option("--menuconfig", "-m", help="Run menuconfig", is_flag=True)
 def menuconfig():
     """Run the interactive menuconfig interface.
 
     Opens the curses-based menu configuration interface for interactive
     Kconfig editing.
 
+    Set MENUCONFIG_STYLE environment variable to customize the menuconfig interface.
+    Available styles are: default, monochrome, aquatic.
+
+    Example:\n
+      $ MENUCONFIG_STYLE="aquatic" ntxbuild menuconfig
+
     Exits with code 0 on success, 1 on error.
     """
+    env = prepare_env()
     try:
-        builder = get_builder()
-        builder.menuconfig()
-        sys.exit(0)
+        config_manager = ConfigManager(
+            env.get("nuttxspace_path"),
+            env.get("apps_dir"),
+            env.get("nuttx_dir"),
+            env.get("build_tool"),
+        )
     except click.ClickException as e:
         click.echo(f"❌ {e}")
         sys.exit(1)
+
+    config_manager.kconfig_menuconfig()
+    sys.exit(0)
 
 
 @main.group()

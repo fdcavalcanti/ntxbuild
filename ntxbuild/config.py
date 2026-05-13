@@ -14,6 +14,7 @@ from functools import wraps
 from pathlib import Path
 
 import kconfiglib
+import menuconfig
 
 from . import utils
 from .build import BuildTool
@@ -506,15 +507,11 @@ class ConfigManager:
     def kconfig_set_str(self, config: str, value: str) -> int:
         return self._manager.kconfig_set_str(self._normalize_config_name(config), value)
 
+    @kconfig_chdir
     def kconfig_menuconfig(self) -> int:
         logger.debug("Opening menuconfig")
-        if self.build_tool == BuildTool.MAKE:
-            utils.run_curses_command(["make", "menuconfig"], cwd=self.nuttx_path)
-        else:
-            utils.run_curses_command(
-                ["cmake", "--build", self.build_dir, "-t", "menuconfig"],
-                cwd=self.build_dir,
-            )
+        menuconfig.menuconfig(self._manager)
+        return 0
 
     @kconfig_chdir
     def kconfig_merge_config_file(self, source_file: str) -> int:
