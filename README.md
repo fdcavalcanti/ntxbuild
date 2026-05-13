@@ -1,60 +1,61 @@
 # ntxbuild
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![PyPI](https://img.shields.io/pypi/v/ntxbuild.svg)](https://pypi.org/project/ntxbuild/)
+[![Python 3.10+](https://img.shields.io/pypi/pyversions/ntxbuild.svg)](https://pypi.org/project/ntxbuild/)
 [![Linux](https://img.shields.io/badge/platform-Linux-lightgrey.svg)](https://www.linux.org/)
-![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/fdcavalcanti/ntxbuild/python-package.yml)
-![Read the Docs](https://img.shields.io/readthedocs/ntxbuild)
+[![CI](https://img.shields.io/github/actions/workflow/status/fdcavalcanti/ntxbuild/python-package.yml?label=CI)](https://github.com/fdcavalcanti/ntxbuild/actions/workflows/python-package.yml)
+[![Docs](https://img.shields.io/readthedocs/ntxbuild?label=docs)](https://ntxbuild.readthedocs.io)
+[![License](https://img.shields.io/github/license/fdcavalcanti/ntxbuild.svg)](LICENSE)
 
-**NuttX Build System Assistant** - A Python tool for managing and building NuttX RTOS projects with ease.
+**NuttX Build System Assistant** for configuring and building NuttX RTOS projects through a CLI and a Python API.
 
-ntxbuild is a wrapper around the many tools available in the NuttX repository. It wraps around utilities
-such as make, kconfig-tweak, menuconfig and most used bash scripts (such as configure.sh).
+`ntxbuild` wraps common NuttX tools and workflows, including `make`, `kconfig-tweak`, `menuconfig`, and `configure.sh`.
+It also provides helpers for downloading toolchains, listing boards and defconfigs, and managing build environment paths.
 
-Also, it provides different features, such as downloading required toolchains and managing PATH.
+## Installation
 
-This tool provides a command line interface that supports NuttX configuration and building,
-while also providing a Python API that allows you to script your builds.
+Install from PyPI:
+
+```bash
+python -m pip install ntxbuild
+```
 
 ## Features
 
-- **Environment Management**: Automatic NuttX workspace detection and configuration
-- **Python API**: ntxbuild is available as a Python package for building NuttX using Python scripts
-- **Real-time Output**: Live build progress with proper ANSI escape sequence handling
-- **Configuration Management**: Kconfig integration for easy system configuration
-- **Interactive Tools**: Support for curses-based tools like menuconfig
-- **Toolchin Support**: Download and use your required toolchain automatically through the CLI
-
-## Documentation
-
-Complete documentation, including usage examples and API reference, see: https://ntxbuild.readthedocs.io
+- **Environment management**: automatic NuttX workspace detection and configuration.
+- **Python API**: script builds directly from Python.
+- **Real-time output**: live build progress with proper ANSI escape sequence handling.
+- **Configuration management**: Kconfig integration for easy configuration.
+- **Interactive tools**: support for curses-based tools such as `menuconfig`.
+- **Toolchain support**: install and use common toolchains directly from the CLI.
 
 ## Requirements
 
 - **Python 3.10+**
 - **NuttX** source code and applications
-- **Make** and standard build tools required by NuttX RTOS
-- **CMake** supported but optional
+- **Make** and standard build tools required by NuttX
+- **CMake** (optional)
 
 ## Quick Start
 
+### Build with the CLI
 
-### Build using CLI
+Create a workspace and download NuttX and NuttX Apps:
 
-Navigate to your NuttX workspace and download latest NuttX and NuttX Apps using `ntxbuild`.
 ```bash
-$ mkdir ~/nuttxspace
-$ cd ~/nuttxspace
-$ ntxbuild download
+mkdir -p ~/nuttxspace
+cd ~/nuttxspace
+ntxbuild download
 ```
 
-Build the simulator using the `nsh` defconfig.
+Build the simulator using the `nsh` defconfig:
+
 ```bash
-$ ntxbuild start sim nsh
-$ ntxbuild build --parallel 8
+ntxbuild start sim nsh
+ntxbuild build --parallel 8
 ```
 
-### Build using Python script
-Alternatively, you can automate your builds using a Python script instead of the CLI.
+### Build with Python
 
 ```python
 from pathlib import Path
@@ -62,62 +63,51 @@ from ntxbuild.build import MakeBuilder
 
 current_dir = Path.cwd()
 
-# Use the Makefile-based builder
-# First parameter is the nuttxspace path, second is the apps directory name
+# First parameter is the NuttX workspace path, second is the apps directory name.
 builder = MakeBuilder(current_dir, "nuttx-apps")
-# Initialize the board/defconfig
-setup_result = builder.initialize("sim", "nsh")
-
-# Execute the build with 10 parallel jobs
+builder.initialize("sim", "nsh")
 builder.build(parallel=10)
-
-# You can now clean the environment if needed
 builder.distclean()
 ```
 
-### Installing toolchains
-Support for installing some of the most common toolchains is available.
+### Install toolchains
 
 ```bash
-$ ntxbuild toolchain install gcc-arm-none-eabi
-Installing toolchain gcc-arm-none-eabi for NuttX v12.12.0
-✅ Toolchain gcc-arm-none-eabi installed successfully
-Installation directory: /home/user/ntxenv/toolchains
-Note: Toolchains are sourced automatically during build.
+ntxbuild toolchain install gcc-arm-none-eabi
 ```
 
-## Installation
+## Documentation
 
-### Using pip
+Full documentation (usage and API reference): https://ntxbuild.readthedocs.io
 
-As an user, you can install this tool using pip:
+## Support
+
+- Report bugs or request features in [GitHub Issues](https://github.com/fdcavalcanti/ntxbuild/issues).
+- For usage details, see the [documentation](https://ntxbuild.readthedocs.io).
+
+## Contributing
+
+Contributions are welcome and reviewed before merge.
+
+- Tests and documentation are required for new features.
+- Dependencies should be kept to a minimum.
+- Code linting via `pre-commit` is required.
+
+Installing from source:
+
 ```bash
-pip install ntxbuild
-```
-
-### From Source
-If you are a developer or simply wants to install from source, you can clone
-this repository and install using `pip install -e <repo>`
-
-```bash
-git clone <repository-url>
+git clone https://github.com/fdcavalcanti/ntxbuild.git
 cd ntxbuild
 pip install -e .
 ```
 
-Use the `dev` configuration to install development tools and `docs` to install
-documentation tools.
+Optional extras automatically install required development tools or documentation build tools:
 
 ```bash
 pip install -e ".[dev]"
-```
-```bash
 pip install -e ".[docs]"
 ```
 
-## Contributing
-Contributions are always welcome but will be subject to review and approval.
-Basic rules:
-- Testing and documentation are mandatory for new features
-- Depedencies should be kept to a minimal
-- Code linting using pre-commit is mandatory
+## License
+
+This project is licensed under the terms in [`LICENSE`](LICENSE).
